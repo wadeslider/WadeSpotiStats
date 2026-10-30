@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WadeSpotiStats - Kenia Os</title>
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Google Fonts: Inter & Outfit -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@600;700;800;900&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            bg: '#0b0b10',
+                            card: '#121218',
+                            hover: '#1e1e28',
+                            border: '#262635',
+                            accent: '#ff2d75',
+                            accentHover: '#e02463',
+                            green: '#1db954',
+                            greenHover: '#1ed760',
+                            textSub: '#a0a0b0'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            background-color: #0b0b10;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b0b10;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #262635;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff2d75;
+        }
+
+        .neon-glow:hover {
+            box-shadow: 0 0 15px rgba(255, 45, 117, 0.35);
+        }
+
+        .play-button-overlay {
+            opacity: 0;
+            transform: translateY(8px);
+            transition: all 0.25s ease-in-out;
+        }
+
+        .track-card:hover .play-button-overlay {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-20 bg-cyber-bg text-white selection:bg-cyber-accent selection:text-white">
+
+    <!-- Header / Navbar -->
+    <header class="sticky top-0 z-40 bg-cyber-bg/90 backdrop-blur-md border-b border-cyber-border/80 px-4 lg:px-8 py-3.5">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3">
+            
+            <!-- Brand Title -->
+            <div class="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-start">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-cyber-accent to-cyber-green flex items-center justify-center text-white font-black text-xl shadow-lg shrink-0">
+                        <i class="fa-brands fa-spotify"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-base sm:text-lg lg:text-xl font-outfit font-extrabold tracking-tight text-white flex items-center gap-2">
+                            WadeSpotiStats <span class="text-cyber-accent font-light">|</span> <span class="text-cyber-accent">Kenia Os</span>
+                        </h1>
+                        <p class="text-[10px] sm:text-xs text-cyber-textSub">Catálogo interactivo & ranking personal</p>
+                    </div>
+                </div>
+
+                <!-- Mobile Add Button Trigger -->
+                <button onclick="openModal()" class="sm:hidden px-3 py-1.5 bg-cyber-accent hover:bg-cyber-accentHover text-white font-bold text-xs rounded-full transition flex items-center gap-1.5 shadow-md shrink-0">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nuevo</span>
+                </button>
+            </div>
+
+            <!-- Action Buttons: Backup, Import, New Song -->
+            <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+                <button onclick="exportJSON()" class="flex-1 sm:flex-none px-3.5 py-2 bg-cyber-card border border-cyber-border hover:border-cyber-textSub text-cyber-textSub hover:text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-download text-cyber-accent"></i>
+                    <span>Backup</span>
+                </button>
+
+                <button onclick="document.getElementById('fileInput').click()" class="flex-1 sm:flex-none px-3.5 py-2 bg-cyber-card border border-cyber-border hover:border-cyber-textSub text-cyber-textSub hover:text-white font-semibold text-xs rounded-full transition flex items-center justify-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-upload text-cyber-green"></i>
+                    <span>Cargar</span>
+                </button>
+                <input type="file" id="fileInput" accept=".json" class="hidden" onchange="importJSON(event)">
+
+                <button onclick="openModal()" class="hidden sm:flex px-4 py-2 bg-cyber-accent hover:bg-cyber-accentHover text-white font-extrabold text-xs rounded-full transition transform active:scale-95 items-center gap-1.5 neon-glow shadow-md">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Nueva Canción</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-5 space-y-5">
+
+        <!-- Top Statistics Bar -->
+        <div class="grid grid-cols-3 gap-2.5 sm:gap-4">
+            <div class="bg-cyber-card border border-cyber-border/70 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-[9px] sm:text-xs font-semibold text-cyber-textSub uppercase tracking-wider">Total Canciones</p>
+                    <p class="text-base sm:text-2xl font-outfit font-bold text-white mt-0.5" id="statTotalTracks">0</p>
+                </div>
+                <div class="hidden sm:flex w-9 h-9 rounded-full bg-cyber-accent/10 text-cyber-accent items-center justify-center text-base">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+            </div>
+
+            <div class="bg-cyber-card border border-cyber-border/70 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm">
+                <div class="min-w-0 w-full">
+                    <p class="text-[9px] sm:text-xs font-semibold text-cyber-textSub uppercase tracking-wider">Top #1 Streams</p>
+                    <p class="text-xs sm:text-base font-outfit font-bold text-cyber-accent truncate mt-0.5" id="statTopTrack">-</p>
+                </div>
+                <div class="hidden sm:flex w-9 h-9 rounded-full bg-amber-500/10 text-amber-400 items-center justify-center text-base shrink-0">
+                    <i class="fa-solid fa-trophy"></i>
+                </div>
+            </div>
+
+            <div class="bg-cyber-card border border-cyber-border/70 rounded-2xl p-3 sm:p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between shadow-sm">
+                <div>
+                    <p class="text-[9px] sm:text-xs font-semibold text-cyber-textSub uppercase tracking-wider">Streams Acumulados</p>
+                    <p class="text-base sm:text-2xl font-outfit font-bold text-cyber-green mt-0.5" id="statTotalStreams">0</p>
+                </div>
+                <div class="hidden sm:flex w-9 h-9 rounded-full bg-cyber-green/10 text-cyber-green items-center justify-center text-base">
+                    <i class="fa-solid fa-chart-line"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Bar: Search, Sorting, Views -->
+        <div class="bg-cyber-card border border-cyber-border/70 rounded-2xl p-3 sm:p-4 flex flex-col lg:flex-row justify-between items-center gap-3 shadow-md">
+            
+            <!-- Search Bar -->
+            <div class="relative w-full lg:w-80">
+                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-cyber-textSub text-xs"></i>
+                <input type="text" id="searchInput" oninput="handleSearch()" placeholder="Buscar canción, artista o álbum..." class="w-full bg-cyber-bg border border-cyber-border text-xs sm:text-sm text-white placeholder-cyber-textSub rounded-full pl-9 pr-4 py-2 focus:outline-none focus:border-cyber-accent transition">
+            </div>
+
+            <!-- Sorting & View Toggles -->
+            <div class="flex items-center justify-between lg:justify-end gap-2 w-full lg:w-auto">
+                <div class="flex items-center gap-1.5 flex-1 lg:flex-initial">
+                    <select id="sortSelect" onchange="handleSortChange(this.value)" class="w-full lg:w-auto bg-cyber-bg border border-cyber-border text-xs font-semibold text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent cursor-pointer">
+                        <option value="streams-desc">🔥 Más reproducidas</option>
+                        <option value="streams-asc">❄️ Menos reproducidas</option>
+                        <option value="date-desc">📅 Más recientes</option>
+                        <option value="date-asc">⏳ Más viejas</option>
+                        <option value="title-asc">🔤 A - Z</option>
+                        <option value="title-desc">🔤 Z - A</option>
+                    </select>
+                </div>
+
+                <!-- View Mode Buttons -->
+                <div class="flex bg-cyber-bg p-1 rounded-xl border border-cyber-border shrink-0">
+                    <button onclick="setViewMode('grid')" id="btnViewGrid" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-cyber-border transition" title="Cuadrícula">
+                        <i class="fa-solid fa-border-all"></i>
+                    </button>
+                    <button onclick="setViewMode('horizontal')" id="btnViewHorizontal" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-cyber-textSub hover:text-white transition" title="Tarjetas Acostadas">
+                        <i class="fa-solid fa-bars font-bold"></i>
+                    </button>
+                    <button onclick="setViewMode('list')" id="btnViewList" class="px-2.5 py-1.5 rounded-lg text-xs font-semibold text-cyber-textSub hover:text-white transition" title="Tabla / Lista">
+                        <i class="fa-solid fa-table-list"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Catalog Songs Container -->
+        <div id="tracksContainer"></div>
+
+        <!-- Empty State Message -->
+        <div id="emptyState" class="hidden flex-col items-center justify-center text-center py-16 px-4 bg-cyber-card/40 border border-dashed border-cyber-border rounded-2xl">
+            <div class="w-16 h-16 rounded-full bg-cyber-border/40 flex items-center justify-center text-cyber-textSub mb-3">
+                <i class="fa-solid fa-compact-disc text-3xl"></i>
+            </div>
+            <h3 class="text-base sm:text-lg font-outfit font-bold text-white mb-1">Tu catálogo está vacío</h3>
+            <p class="text-xs text-cyber-textSub max-w-sm mb-5">Agrega tus canciones favoritas de Kenia Os para llevar el conteo exacto de reproducciones.</p>
+            <button onclick="openModal()" class="px-5 py-2.5 bg-cyber-accent hover:bg-cyber-accentHover text-white font-extrabold text-xs rounded-full transition transform active:scale-95 flex items-center gap-2 neon-glow shadow-md">
+                <i class="fa-solid fa-plus"></i>
+                <span>Agregar Canción</span>
+            </button>
+        </div>
+
+    </main>
+
+    <!-- Modal Form (Agregar / Editar Canción) -->
+    <div id="trackModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center hidden p-3 sm:p-4">
+        <div class="bg-cyber-card border border-cyber-border w-full max-w-lg rounded-2xl shadow-2xl p-5 relative animate-fade-in max-h-[90vh] overflow-y-auto">
+            
+            <!-- Close Button -->
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-cyber-textSub hover:text-white transition p-1">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <div class="flex items-center gap-3 mb-5">
+                <div class="w-9 h-9 rounded-xl bg-cyber-accent/20 text-cyber-accent flex items-center justify-center text-base">
+                    <i class="fa-solid fa-music"></i>
+                </div>
+                <div>
+                    <h3 id="modalTitle" class="text-lg font-outfit font-extrabold text-white">Agregar Canción</h3>
+                    <p class="text-[11px] text-cyber-textSub">Ingresa los datos exactos del tema</p>
+                </div>
+            </div>
+            
+            <form id="trackForm" onsubmit="saveTrack(event)" class="space-y-3.5">
+                <input type="hidden" id="trackId">
+                
+                <!-- Title & Artist -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Título de la Canción *</label>
+                        <input type="text" id="inputTitle" required placeholder="Ej: Por Siempre" class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Artista(s) *</label>
+                        <input type="text" id="inputArtist" required placeholder="Kenia Os" value="Kenia Os" class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                    </div>
+                </div>
+
+                <!-- Album & Type -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Álbum / Lanzamiento</label>
+                        <input type="text" id="inputAlbum" placeholder="Ej: Cambios de Luna" class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Tipo de Lanzamiento *</label>
+                        <select id="inputType" required class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition cursor-pointer">
+                            <option value="Sencillo">🎵 Sencillo</option>
+                            <option value="Álbum">💿 Álbum</option>
+                            <option value="EP">💽 EP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Streams & Date -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Reproducciones Totales (Exactas) *</label>
+                        <input type="number" id="inputStreams" required min="0" placeholder="Ej: 400000000" class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-cyber-textSub mb-1">Fecha de Lanzamiento</label>
+                        <input type="date" id="inputReleaseDate" class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                    </div>
+                </div>
+
+                <!-- Cover URL -->
+                <div>
+                    <label class="block text-xs font-semibold text-cyber-textSub mb-1">URL de la Portada (Imagen)</label>
+                    <input type="url" id="inputCoverUrl" placeholder="https://..." class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                </div>
+
+                <!-- External Song Link -->
+                <div>
+                    <label class="block text-xs font-semibold text-cyber-textSub mb-1">Enlace de Reproducción (Spotify / YouTube)</label>
+                    <input type="url" id="inputSongUrl" placeholder="https://open.spotify.com/track/..." class="w-full bg-cyber-bg border border-cyber-border text-xs text-white rounded-xl px-3 py-2 focus:outline-none focus:border-cyber-accent transition">
+                </div>
+
+                <!-- Modal Actions -->
+                <div class="flex justify-end gap-2.5 pt-3 border-t border-cyber-border/80">
+                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-cyber-bg border border-cyber-border text-cyber-textSub hover:text-white text-xs font-bold rounded-full transition">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-cyber-accent hover:bg-cyber-accentHover text-white font-extrabold text-xs rounded-full transition transform active:scale-95 shadow-md">
+                        Guardar Canción
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-5 right-5 bg-cyber-card border border-cyber-green text-white text-xs sm:text-sm px-4 py-3 rounded-2xl shadow-2xl flex items-center gap-2.5 transition-all duration-300 transform translate-y-20 opacity-0 z-50">
+        <i class="fa-solid fa-circle-check text-cyber-green text-base"></i>
+        <span id="toastMessage" class="font-medium">Mensaje</span>
+    </div>
+
+    <!-- JavaScript Application Engine -->
+    <script>
+        let tracks = [];
+        let searchQuery = '';
+        let currentSort = 'streams-desc';
+        let currentView = 'grid'; // 'grid' | 'horizontal' | 'list'
+
+        const DEFAULT_COVER = 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=300&auto=format&fit=crop&q=80';
+
+        function initApp() {
+            const savedData = localStorage.getItem('wadespotistats_songs');
+            if (savedData) {
+                try {
+                    tracks = JSON.parse(savedData);
+                } catch (e) {
+                    tracks = [];
+                }
+            } else {
+                tracks = [];
+            }
+            render();
+        }
+
+        function saveToLocalStorage() {
+            localStorage.setItem('wadespotistats_songs', JSON.stringify(tracks));
+        }
+
+        // Formato número exacto: 400000000 -> 400,000,000
+        function formatStreamsExact(num) {
+            return (Number(num) || 0).toLocaleString('es-MX');
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return 'S/F';
+            const [year, month, day] = dateStr.split('-');
+            if (year && month && day) return `${day}/${month}/${year}`;
+            return dateStr;
+        }
+
+        function render() {
+            // Update Top Bar Statistics
+            document.getElementById('statTotalTracks').innerText = tracks.length;
+
+            const totalStreamsSum = tracks.reduce((sum, item) => sum + (Number(item.streams) || 0), 0);
+            document.getElementById('statTotalStreams').innerText = formatStreamsExact(totalStreamsSum);
+
+            const sortedByStreamsAll = [...tracks].sort((a, b) => (Number(b.streams) || 0) - (Number(a.streams) || 0));
+            document.getElementById('statTopTrack').innerText = sortedByStreamsAll[0] ? sortedByStreamsAll[0].title : '-';
+
+            // Filter logic
+            let filtered = tracks.filter(track => {
+                const q = searchQuery.toLowerCase();
+                return (
+                    track.title.toLowerCase().includes(q) ||
+                    (track.artist && track.artist.toLowerCase().includes(q)) ||
+                    (track.album && track.album.toLowerCase().includes(q)) ||
+                    (track.type && track.type.toLowerCase().includes(q))
+                );
+            });
+
+            // Sorting logic
+            filtered.sort((a, b) => {
+                const streamsA = Number(a.streams) || 0;
+                const streamsB = Number(b.streams) || 0;
+                const dateA = new Date(a.releaseDate || 0);
+                const dateB = new Date(b.releaseDate || 0);
+
+                switch (currentSort) {
+                    case 'streams-desc': return streamsB - streamsA;
+                    case 'streams-asc': return streamsA - streamsB;
+                    case 'date-desc': return dateB - dateA;
+                    case 'date-asc': return dateA - dateB;
+                    case 'title-asc': return a.title.localeCompare(b.title);
+                    case 'title-desc': return b.title.localeCompare(a.title);
+                    default: return streamsB - streamsA;
+                }
+            });
+
+            const container = document.getElementById('tracksContainer');
+            const emptyState = document.getElementById('emptyState');
+
+            if (filtered.length === 0) {
+                container.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                emptyState.classList.add('flex');
+            } else {
+                emptyState.classList.add('hidden');
+                emptyState.classList.remove('flex');
+
+                if (currentView === 'grid') {
+                    renderGridView(filtered, container);
+                } else if (currentView === 'horizontal') {
+                    renderHorizontalView(filtered, container);
+                } else {
+                    renderListView(filtered, container);
+                }
+            }
+        }
+
+        // 1. Grid View Render
+        function renderGridView(items, container) {
+            let html = `<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">`;
+
+            items.forEach(track => {
+                const cover = track.coverUrl || DEFAULT_COVER;
+                const playUrl = track.songUrl || '#';
+
+                html += `
+                    <div class="track-card bg-cyber-card hover:bg-cyber-hover border border-cyber-border/70 hover:border-cyber-border rounded-xl p-3 transition duration-200 flex flex-col justify-between group relative">
+                        <div>
+                            <div class="relative aspect-square w-full rounded-lg overflow-hidden bg-cyber-bg mb-2.5 cursor-pointer" onclick="openSongLink('${playUrl}')">
+                                <img src="${cover}" alt="${escapeHtml(track.title)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='${DEFAULT_COVER}'">
+                                <div class="play-button-overlay absolute bottom-2 right-2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-cyber-green text-black flex items-center justify-center shadow-xl">
+                                    <i class="fa-solid fa-play ml-0.5 text-xs sm:text-sm"></i>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-cyber-border text-cyber-accent border border-cyber-accent/20">
+                                    ${escapeHtml(track.type || 'Sencillo')}
+                                </span>
+                                <span class="text-[9px] text-cyber-textSub font-medium">
+                                    ${formatDate(track.releaseDate)}
+                                </span>
+                            </div>
+
+                            <h4 class="font-outfit font-bold text-white text-xs sm:text-sm truncate leading-snug hover:text-cyber-accent cursor-pointer" onclick="openSongLink('${playUrl}')" title="${escapeHtml(track.title)}">
+                                ${escapeHtml(track.title)}
+                            </h4>
+                            <p class="text-[11px] font-semibold text-cyber-textSub truncate mt-0.5" title="${escapeHtml(track.artist || 'Kenia Os')}">
+                                ${escapeHtml(track.artist || 'Kenia Os')}
+                            </p>
+                        </div>
+
+                        <div class="mt-3 pt-2 border-t border-cyber-border/60 flex items-center justify-between">
+                            <div class="min-w-0 pr-1">
+                                <p class="text-[9px] font-semibold text-cyber-textSub uppercase">Streams</p>
+                                <p class="text-xs sm:text-sm font-outfit font-extrabold text-cyber-green truncate">
+                                    ${formatStreamsExact(track.streams)}
+                                </p>
+                            </div>
+
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="editTrack('${track.id}')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-cyber-bg border border-cyber-border hover:border-cyber-accent text-cyber-textSub hover:text-cyber-accent flex items-center justify-center transition" title="Editar">
+                                    <i class="fa-solid fa-pencil text-[10px] sm:text-xs"></i>
+                                </button>
+                                <button onclick="deleteTrack('${track.id}')" class="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-cyber-bg border border-cyber-border hover:border-red-500 text-cyber-textSub hover:text-red-400 flex items-center justify-center transition" title="Eliminar">
+                                    <i class="fa-solid fa-trash text-[10px] sm:text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // 2. Horizontal Cards View Render
+        function renderHorizontalView(items, container) {
+            let html = `<div class="space-y-2.5">`;
+
+            items.forEach((track, index) => {
+                const cover = track.coverUrl || DEFAULT_COVER;
+                const playUrl = track.songUrl || '#';
+
+                html += `
+                    <div class="bg-cyber-card hover:bg-cyber-hover border border-cyber-border/70 hover:border-cyber-border rounded-xl p-2.5 sm:p-3.5 transition duration-200 flex items-center justify-between gap-3 group">
+                        
+                        <div class="flex items-center gap-2.5 sm:gap-3.5 min-w-0 flex-1">
+                            <span class="font-outfit font-extrabold text-cyber-textSub group-hover:text-cyber-accent text-xs sm:text-sm w-4 sm:w-6 text-center shrink-0">
+                                ${index + 1}
+                            </span>
+
+                            <div class="relative w-11 h-11 sm:w-14 sm:h-14 rounded-lg overflow-hidden bg-cyber-bg shrink-0 cursor-pointer" onclick="openSongLink('${playUrl}')">
+                                <img src="${cover}" alt="${escapeHtml(track.title)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src='${DEFAULT_COVER}'">
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                                <div class="flex items-center gap-1.5 mb-0.5">
+                                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded-full bg-cyber-border text-cyber-accent border border-cyber-accent/20">
+                                        ${escapeHtml(track.type || 'Sencillo')}
+                                    </span>
+                                </div>
+                                <h4 class="font-outfit font-bold text-white text-xs sm:text-base truncate hover:text-cyber-accent cursor-pointer leading-tight" onclick="openSongLink('${playUrl}')" title="${escapeHtml(track.title)}">
+                                    ${escapeHtml(track.title)}
+                                </h4>
+                                <p class="text-[11px] text-cyber-textSub truncate mt-0.5" title="${escapeHtml(track.artist || 'Kenia Os')}">
+                                    ${escapeHtml(track.artist || 'Kenia Os')} • <span class="text-cyber-textSub/70">${escapeHtml(track.album || 'Sin Álbum')}</span>
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 sm:gap-6 shrink-0">
+                            <div class="text-right">
+                                <p class="text-[9px] font-semibold text-cyber-textSub uppercase hidden sm:block">Streams Exactos</p>
+                                <p class="text-xs sm:text-base font-outfit font-extrabold text-cyber-green whitespace-nowrap">
+                                    ${formatStreamsExact(track.streams)}
+                                </p>
+                            </div>
+
+                            <div class="flex items-center gap-1">
+                                <button onclick="editTrack('${track.id}')" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyber-bg border border-cyber-border hover:border-cyber-accent text-cyber-textSub hover:text-cyber-accent flex items-center justify-center transition" title="Editar">
+                                    <i class="fa-solid fa-pencil text-xs"></i>
+                                </button>
+                                <button onclick="deleteTrack('${track.id}')" class="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-cyber-bg border border-cyber-border hover:border-red-500 text-cyber-textSub hover:text-red-400 flex items-center justify-center transition" title="Eliminar">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            container.innerHTML = html;
+        }
+
+        // 3. Spotify Table / List View Render (No duplicate text, exact full streams)
+        function renderListView(items, container) {
+            let html = `
+                <div class="bg-cyber-card border border-cyber-border/70 rounded-xl overflow-hidden shadow-xl">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-cyber-textSub">
+                            <thead class="bg-cyber-bg text-[10px] font-outfit uppercase border-b border-cyber-border text-cyber-textSub tracking-wider">
+                                <tr>
+                                    <th class="py-2.5 px-3 text-center w-8">#</th>
+                                    <th class="py-2.5 px-3">Título / Artista</th>
+                                    <th class="py-2.5 px-3 hidden sm:table-cell">Álbum</th>
+                                    <th class="py-2.5 px-3 text-right">Reproducciones Exactas</th>
+                                    <th class="py-2.5 px-3 text-center w-20">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-cyber-border/40">
+            `;
+
+            items.forEach((track, index) => {
+                const cover = track.coverUrl || DEFAULT_COVER;
+                const playUrl = track.songUrl || '#';
+
+                html += `
+                    <tr class="hover:bg-cyber-hover transition duration-150">
+                        <td class="py-2.5 px-3 text-center font-outfit font-bold text-cyber-textSub text-xs">
+                            ${index + 1}
+                        </td>
+                        <td class="py-2.5 px-3">
+                            <div class="flex items-center gap-2.5 min-w-[140px]">
+                                <img src="${cover}" alt="${escapeHtml(track.title)}" class="w-9 h-9 sm:w-10 sm:h-10 rounded overflow-hidden object-cover bg-cyber-bg shrink-0 cursor-pointer" onclick="openSongLink('${playUrl}')" onerror="this.src='${DEFAULT_COVER}'">
+                                <div class="min-w-0">
+                                    <p class="font-outfit font-bold text-white text-xs sm:text-sm hover:text-cyber-accent cursor-pointer truncate leading-tight" onclick="openSongLink('${playUrl}')">
+                                        ${escapeHtml(track.title)}
+                                    </p>
+                                    <p class="text-[11px] text-cyber-textSub truncate mt-0.5">
+                                        ${escapeHtml(track.artist || 'Kenia Os')}
+                                    </p>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="py-2.5 px-3 text-cyber-textSub truncate max-w-[120px] hidden sm:table-cell">
+                            ${escapeHtml(track.album || 'Sin Álbum')}
+                        </td>
+                        <td class="py-2.5 px-3 text-right whitespace-nowrap">
+                            <span class="font-outfit font-extrabold text-cyber-green text-xs sm:text-sm">
+                                ${formatStreamsExact(track.streams)}
+                            </span>
+                        </td>
+                        <td class="py-2.5 px-3 text-center">
+                            <div class="flex items-center justify-center gap-1.5">
+                                <button onclick="editTrack('${track.id}')" class="p-1 text-cyber-textSub hover:text-cyber-accent transition" title="Editar">
+                                    <i class="fa-solid fa-pencil text-xs"></i>
+                                </button>
+                                <button onclick="deleteTrack('${track.id}')" class="p-1 text-cyber-textSub hover:text-red-400 transition" title="Eliminar">
+                                    <i class="fa-solid fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        function handleSearch() {
+            searchQuery = document.getElementById('searchInput').value;
+            render();
+        }
+
+        function handleSortChange(value) {
+            currentSort = value;
+            render();
+        }
+
+        function setViewMode(mode) {
+            currentView = mode;
+            const btnGrid = document.getElementById('btnViewGrid');
+            const btnHorizontal = document.getElementById('btnViewHorizontal');
+            const btnList = document.getElementById('btnViewList');
+
+            const activeClass = "px-2.5 py-1.5 rounded-lg text-xs font-semibold text-white bg-cyber-border transition";
+            const inactiveClass = "px-2.5 py-1.5 rounded-lg text-xs font-semibold text-cyber-textSub hover:text-white transition";
+
+            btnGrid.className = mode === 'grid' ? activeClass : inactiveClass;
+            btnHorizontal.className = mode === 'horizontal' ? activeClass : inactiveClass;
+            btnList.className = mode === 'list' ? activeClass : inactiveClass;
+
+            render();
+        }
+
+        function openSongLink(url) {
+            if (url && url !== '#') {
+                window.open(url, '_blank');
+            } else {
+                showToast('No hay enlace asignado para esta canción');
+            }
+        }
+
+        function openModal(trackToEdit = null) {
+            const modal = document.getElementById('trackModal');
+            const form = document.getElementById('trackForm');
+            const title = document.getElementById('modalTitle');
+
+            if (trackToEdit) {
+                title.innerText = "Editar Canción";
+                document.getElementById('trackId').value = trackToEdit.id;
+                document.getElementById('inputTitle').value = trackToEdit.title;
+                document.getElementById('inputArtist').value = trackToEdit.artist || 'Kenia Os';
+                document.getElementById('inputAlbum').value = trackToEdit.album || '';
+                document.getElementById('inputType').value = trackToEdit.type || 'Sencillo';
+                document.getElementById('inputStreams').value = trackToEdit.streams;
+                document.getElementById('inputReleaseDate').value = trackToEdit.releaseDate || '';
+                document.getElementById('inputCoverUrl').value = trackToEdit.coverUrl || '';
+                document.getElementById('inputSongUrl').value = trackToEdit.songUrl || '';
+            } else {
+                title.innerText = "Agregar Canción";
+                form.reset();
+                document.getElementById('trackId').value = '';
+                document.getElementById('inputArtist').value = 'Kenia Os';
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('trackModal').classList.add('hidden');
+        }
+
+        function saveTrack(e) {
+            e.preventDefault();
+
+            const id = document.getElementById('trackId').value;
+            const title = document.getElementById('inputTitle').value.trim();
+            const artist = document.getElementById('inputArtist').value.trim() || 'Kenia Os';
+            const album = document.getElementById('inputAlbum').value.trim() || 'Sin Álbum';
+            const type = document.getElementById('inputType').value;
+            const streams = Number(document.getElementById('inputStreams').value) || 0;
+            const releaseDate = document.getElementById('inputReleaseDate').value;
+            const coverUrl = document.getElementById('inputCoverUrl').value.trim();
+            const songUrl = document.getElementById('inputSongUrl').value.trim();
+
+            if (id) {
+                const index = tracks.findIndex(t => t.id === id);
+                if (index !== -1) {
+                    tracks[index] = { id, title, artist, album, type, streams, releaseDate, coverUrl, songUrl };
+                    showToast('Canción actualizada');
+                }
+            } else {
+                const newTrack = {
+                    id: Date.now().toString(),
+                    title,
+                    artist,
+                    album,
+                    type,
+                    streams,
+                    releaseDate,
+                    coverUrl,
+                    songUrl
+                };
+                tracks.push(newTrack);
+                showToast('Canción agregada');
+            }
+
+            saveToLocalStorage();
+            closeModal();
+            render();
+        }
+
+        function editTrack(id) {
+            const track = tracks.find(t => t.id === id);
+            if (track) openModal(track);
+        }
+
+        function deleteTrack(id) {
+            const track = tracks.find(t => t.id === id);
+            if (track && confirm(`¿Deseas eliminar "${track.title}"?`)) {
+                tracks = tracks.filter(t => t.id !== id);
+                saveToLocalStorage();
+                render();
+                showToast('Canción eliminada');
+            }
+        }
+
+        // Export JSON Backup
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(tracks, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "WadeSpotiStats_KeniaOs.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Backup descargado en JSON');
+        }
+
+        // Import JSON File
+        function importJSON(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        tracks = imported;
+                        saveToLocalStorage();
+                        render();
+                        showToast('Catálogo cargado con éxito');
+                    } else {
+                        alert('El archivo JSON no tiene un formato válido.');
+                    }
+                } catch (err) {
+                    alert('Error al leer el archivo JSON.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').innerText = message;
+            
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 2500);
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.onload = initApp;
+    </script>
+</body>
+</html>
