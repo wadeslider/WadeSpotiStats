@@ -311,7 +311,7 @@ function closeDetailModal() {
   }
 }
 
-// BÚSQUEDA Y AUTOCOMPLETADO INTELIGENTE (SOPORTA TEXTO Y ENLACES DE APPLE MUSIC)
+// BÚSQUEDA Y AUTOCOMPLETADO INTELIGENTE (SOPORTA ID DE PISTA i=, SLUGS DE URL Y TEXTO)
 function searchITunes() {
   let rawQuery = document.getElementById('itunesQuery').value.trim();
   if (!rawQuery) return;
@@ -319,27 +319,33 @@ function searchITunes() {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
 
-  let searchTerm = rawQuery;
+  const oldScript = document.getElementById('itunesJsonp');
+  if (oldScript) oldScript.remove();
 
-  if (rawQuery.includes('music.apple.com')) {
+  let requestUrl = '';
+
+  // Si el enlace de Apple Music trae parámetro de pista específica (?i=ID o &i=ID)
+  const matchParamId = rawQuery.match(/[?&]i=(\d+)/);
+  if (matchParamId && matchParamId[1]) {
+    const trackId = matchParamId[1];
+    requestUrl = `https://itunes.apple.com/lookup?id=${trackId}&callback=handleITunesResponse`;
+  } else if (rawQuery.includes('music.apple.com')) {
+    // Si es un enlace de Apple Music sin parámetro i=, intentamos extraer el nombre del slug
     try {
       const urlParts = rawQuery.split('/');
       let slug = urlParts[urlParts.length - 1].split('?')[0];
       if (!slug || slug === 'album' || slug === 'song') {
         slug = urlParts[urlParts.length - 2];
       }
-      if (slug) {
-        searchTerm = slug.replace(/-/g, ' ');
-      }
+      const searchTerm = slug ? slug.replace(/-/g, ' ') : rawQuery;
+      requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&callback=handleITunesResponse`;
     } catch (e) {
-      console.warn('No se pudo parsear el enlace de Apple Music, se usará tal cual');
+      requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(rawQuery)}&entity=song&limit=5&callback=handleITunesResponse`;
     }
+  } else {
+    // Búsqueda normal por texto
+    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(rawQuery)}&entity=song&limit=5&callback=handleITunesResponse`;
   }
-
-  const oldScript = document.getElementById('itunesJsonp');
-  if (oldScript) oldScript.remove();
-
-  let requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&callback=handleITunesResponse`;
 
   const script = document.createElement('script');
   script.id = 'itunesJsonp';
