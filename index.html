@@ -1,200 +1,26 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>WadeSpotiStats - Kenia Os</title>
-  <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22WadeSpotiStats%22%2C%22short_name%22%3A%22SpotiStats%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0b10%22%2C%22theme_color%22%3A%22%2300a8ff%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22public%2Fpng%2Ficon.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
-  <meta name="theme-color" content="#00a8ff">
-  
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <!-- Chart.js para las gráficas -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="public/css/index.css">
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#080d16"><title>WadeSpotiStats | Inicio</title>
+<link rel="icon" href="public/png/icon.png"><link rel="stylesheet" href="public/css/core.css"><link rel="stylesheet" href="public/css/index.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-
-  <header>
-    <div class="top-bar">
-      <h1><i class="fa-brands fa-spotify"></i> WadeSpotiStats</h1>
-      <div class="header-actions">
-        <button class="btn-secondary-btn" id="syncBtn" onclick="manualSyncAllSongs()"><i class="fa-solid fa-rotate"></i> Sincronizar</button>
-        <button class="btn-secondary-btn" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Backup</button>
-        <button class="btn-secondary-btn" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-upload"></i> Cargar</button>
-        <input type="file" id="fileInput" accept=".json,application/json" onchange="importJSON(event)">
-        <button class="btn-main" onclick="openModal()"><i class="fa-solid fa-plus"></i> Nueva</button>
-      </div>
-    </div>
-  </header>
-
-  <!-- PANEL DE ESTADÍSTICAS (4 TARJETAS SIMÉTRICAS) -->
-  <div class="stats-bar">
-    <div class="stat-card">
-      <div class="stat-val" id="statCount">0</div>
-      <div class="stat-label">Canciones</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statTop" style="font-size:0.85rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">-</div>
-      <div class="stat-label">Top #1</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statTotalStreams">0</div>
-      <div class="stat-label">Streams Totales</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-val" id="statAverageStreams">0</div>
-      <div class="stat-label">Promedio / Canción</div>
-    </div>
-  </div>
-
-  <div class="controls-panel">
-    <div class="search-sort-bar">
-      <div class="search-box">
-        <i class="fa-solid fa-magnifying-glass"></i>
-        <input type="text" id="searchInput" placeholder="Buscar canción, artista o álbum..." oninput="renderSongs()">
-      </div>
-
-      <select id="sortSelect" onchange="renderSongs()">
-        <option value="streams-desc">Más reproducidas</option>
-        <option value="streams-asc">Menos reproducidas</option>
-        <option value="date-desc">Más recientes</option>
-        <option value="date-asc">Más viejas</option>
-        <option value="alpha-asc">A - Z</option>
-        <option value="alpha-desc">Z - A</option>
-      </select>
-    </div>
-  </div>
-
-  <div class="container">
-    <div id="songsContainer" class="playlist-view"></div>
-  </div>
-
-  <!-- MODAL DE EDICIÓN Y CREACIÓN CON API ITUNES -->
-  <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <h3 id="modalTitle">Agregar Canción</h3>
-        <button class="close-modal" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="itunes-search-section">
-        <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde Apple Music / iTunes</label>
-        <div class="itunes-search-box">
-          <input type="text" id="itunesQuery" placeholder="Pega tu enlace o busca nombre...">
-          <button type="button" class="btn-main" style="padding: 8px 12px; font-size:0.75rem;" onclick="searchITunes()"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
-        </div>
-        <div class="itunes-results" id="itunesResults"></div>
-      </div>
-
-      <form id="songForm" onsubmit="saveSong(event)">
-        <input type="hidden" id="songId">
-
-        <div class="form-group">
-          <label>Título de la Canción *</label>
-          <input type="text" id="titleInput" required placeholder="Ej: Por Siempre">
-        </div>
-
-        <div class="form-group">
-          <label>Artista(s) *</label>
-          <input type="text" id="artistInput" value="Kenia Os" required placeholder="Kenia Os">
-        </div>
-
-        <div class="form-group">
-          <label>Álbum / Lanzamiento</label>
-          <input type="text" id="albumInput" placeholder="Ej: Cambios de Luna">
-        </div>
-
-        <div class="form-group">
-          <label>Tipo de Lanzamiento</label>
-          <select id="typeInput">
-            <option value="Sencillo">Sencillo</option>
-            <option value="Álbum">Álbum</option>
-            <option value="EP">EP</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Reproducciones Totales (Exactas) *</label>
-          <input type="number" id="streamsInput" required placeholder="Ej: 400000000">
-        </div>
-
-        <div class="form-group">
-          <label>Fecha de Lanzamiento</label>
-          <input type="date" id="dateInput">
-        </div>
-
-        <div class="form-group">
-          <label>URL de Portada (HD)</label>
-          <input type="url" id="coverInput" placeholder="https://...">
-        </div>
-
-        <div class="form-group">
-          <label>URL de Enlace de Spotify *</label>
-          <input type="url" id="linkInput" placeholder="https://open.spotify.com/track/...">
-        </div>
-
-        <div class="modal-footer">
-          <button type="button" class="btn-secondary" onclick="closeModal()">Cancelar</button>
-          <button type="submit" class="btn-main">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL DE MENÚ CONTEXTUAL (TRES PUNTOS / LONG PRESS) -->
-  <div class="modal-overlay" id="contextMenuOverlay" onclick="closeContextMenu()">
-    <div class="context-menu-box" onclick="event.stopPropagation()">
-      <div id="contextMenuTitle" style="font-weight:bold; font-size:0.95rem; margin-bottom:12px; color:white; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Opciones</div>
-      <button class="context-btn" id="ctxEditBtn"><i class="fa-solid fa-pen"></i> Editar canción</button>
-      <button class="context-btn" id="ctxDeleteBtn" style="color:#ff4757;"><i class="fa-solid fa-trash"></i> Eliminar canción</button>
-    </div>
-  </div>
-
-  <!-- MODAL INTERACTIVO DE DETALLES Y DATOS EXPLÍCITOS -->
-  <div class="modal-overlay" id="detailModalOverlay">
-    <div class="modal" style="max-width: 600px;">
-      <div class="modal-header">
-        <h3 id="detailModalTitle"><i class="fa-solid fa-circle-info" style="color:var(--accent);"></i> Detalles y Evolución</h3>
-        <button class="close-modal" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      
-      <div id="songDetailContent" style="display: flex; flex-direction: column; gap: 15px;">
-        <div style="display: flex; gap: 14px; align-items: center;">
-          <img id="detailCover" src="" alt="" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; flex-shrink:0;">
-          <div style="display: flex; flex-direction: column; gap: 4px; min-width:0;">
-            <div id="detailSongTitle" style="font-weight: bold; font-size: 1.15rem; color: white;"></div>
-            <div id="detailSongArtist" style="font-size: 0.88rem; color: var(--text-sub);"></div>
-            <div id="detailSongStreams" class="streams-text" style="font-size: 1.05rem;"></div>
-          </div>
-        </div>
-
-        <div style="background: #14141c; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.82rem;">
-          <div><span style="color:var(--text-sub);">Álbum:</span> <strong id="detailAlbum" style="color:white;">-</strong></div>
-          <div><span style="color:var(--text-sub);">Tipo:</span> <strong id="detailType" style="color:white;">-</strong></div>
-          <div><span style="color:var(--text-sub);">Lanzamiento:</span> <strong id="detailDate" style="color:white;">-</strong></div>
-          <div><span style="color:var(--text-sub);">Historial registros:</span> <strong id="detailHistoryCount" style="color:var(--accent);">5 / 5 max</strong></div>
-        </div>
-
-        <div style="background: #0e0e14; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
-          <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; display: flex; justify-content: space-between;">
-            <span>📈 Gráfica de evolución (Últimas 5 horas)</span>
-            <span style="font-size: 0.75rem; color: var(--accent);">Optimizado</span>
-          </div>
-          <div style="position: relative; height: 200px; width: 100%;">
-            <canvas id="streamsChart"></canvas>
-          </div>
-        </div>
-
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <a id="detailSpotifyLink" href="#" target="_blank" class="btn-main" style="text-decoration: none; font-size: 0.82rem; background-color: var(--green-spotify);">
-            <i class="fa-brands fa-spotify"></i> Escuchar en Spotify
-          </a>
-          <button type="button" class="btn-secondary" onclick="closeDetailModal()">Cerrar</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <script src="public/js/index.js"></script>
-</body>
-    </html>
+<body data-page="home">
+<div class="app-shell">
+<aside class="sidebar" id="sidebar">
+<a class="brand" href="index.html"><span class="brand-mark">W</span><span>Wade<span class="brand-light">SpotiStats</span><small>YOUR MUSIC, YOUR DATA</small></span></a>
+<nav class="nav"><span class="nav-label">BIBLIOTECA</span>
+<a class="nav-link active" href="index.html">⌂ <span>Inicio</span></a><a class="nav-link" href="artistas.html">♬ <span>Artistas</span></a><a class="nav-link" href="track.html">♫ <span>Canciones</span></a><a class="nav-link" href="playlists.html">▤ <span>Playlists</span></a>
+<span class="nav-label">SISTEMA</span><a class="nav-link" href="configuracion.html">⚙ <span>Configuración</span></a></nav>
+<div class="sidebar-bottom"><span class="status-dot"></span> Biblioteca local <small>v2.0.0</small></div></aside>
+<main class="main-area">
+<header class="topbar"><button class="icon-btn mobile-menu" id="menuToggle">☰</button><div><span class="eyebrow">PANEL GENERAL</span><h1>Tu universo musical</h1></div><div class="top-actions"><button class="btn btn-ghost" id="backupBtn">↓ Backup</button><button class="btn btn-ghost" id="syncBtn">↻ Sincronizar</button><a class="btn btn-primary" href="track.html?new=1">＋ Nueva canción</a></div></header>
+<section class="welcome-panel"><div><span class="eyebrow">WADE SPOTI STATS / OVERVIEW</span><h2>Las reproducciones cuentan historias.</h2><p>Controla tus canciones, artistas y playlists desde un solo lugar.</p></div><div class="welcome-orb">♫</div></section>
+<section class="stats-grid"><article class="stat-card"><span>CANCIONES</span><strong id="statSongs">0</strong><small>En tu biblioteca</small></article><article class="stat-card"><span>ARTISTAS</span><strong id="statArtists">0</strong><small>En seguimiento</small></article><article class="stat-card"><span>STREAMS TOTALES</span><strong id="statStreams">0</strong><small>Suma de tu biblioteca</small></article><article class="stat-card"><span>TOP TRACK</span><strong class="stat-top" id="statTop">Sin datos</strong><small>Mayor cantidad de streams</small></article></section>
+<section class="content-grid"><article class="panel chart-panel"><div class="panel-heading"><div><span class="eyebrow">RENDIMIENTO</span><h3>Top canciones</h3></div><a href="track.html" class="text-link">Ver biblioteca →</a></div><div class="chart-wrap"><canvas id="topChart"></canvas><div class="empty-state" id="chartEmpty">Agrega canciones para ver tu ranking.</div></div></article>
+<article class="panel"><div class="panel-heading"><div><span class="eyebrow">DESCUBRE</span><h3>Artistas seguidos</h3></div><a href="artistas.html" class="text-link">Ver todos →</a></div><div id="artistPreview" class="mini-list"></div></article></section>
+<section class="panel recent-panel"><div class="panel-heading"><div><span class="eyebrow">TU COLECCIÓN</span><h3>Últimas canciones</h3></div><a href="track.html" class="text-link">Abrir canciones →</a></div><div id="recentTracks" class="track-list"></div></section>
+<footer class="footer-note">WadeSpotiStats 2.0 · Datos guardados en este navegador.</footer>
+</main></div>
+<script src="public/js/core.js"></script><script src="public/js/index.js"></script></body></html>
