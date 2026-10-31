@@ -311,38 +311,44 @@ function closeDetailModal() {
   }
 }
 
-// BÚSQUEDA Y AUTOCOMPLETADO ROBUSTO (LIMPIA ENLACES Y CONSULTA ITUNES)
+// BÚSQUEDA POR CÓDIGO (EXTRAE EL ID 'i=' DEL ENLACE O USA TEXTO)
 function searchITunes() {
   let rawQuery = document.getElementById('itunesQuery').value.trim();
   if (!rawQuery) return;
 
   const resultsDiv = document.getElementById('itunesResults');
-  resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
-
-  let searchTerm = rawQuery;
-
-  // Si pegan un enlace de Apple Music, limpiamos la URL para extraer el nombre útil
-  if (rawQuery.includes('music.apple.com')) {
-    try {
-      const urlObj = new URL(rawQuery);
-      const pathSegments = urlObj.pathname.split('/').filter(Boolean);
-      // El nombre de la canción/álbum suele estar en los últimos segmentos del enlace
-      if (pathSegments.length > 0) {
-        let lastSegment = pathSegments[pathSegments.length - 1];
-        if (lastSegment === 'album' || lastSegment === 'song' && pathSegments.length > 1) {
-          lastSegment = pathSegments[pathSegments.length - 2];
-        }
-        searchTerm = lastSegment.replace(/-/g, ' ');
-      }
-    } catch (e) {
-      searchTerm = rawQuery;
-    }
-  }
+  resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando por código en iTunes...</p>';
 
   const oldScript = document.getElementById('itunesJsonp');
   if (oldScript) oldScript.remove();
 
-  let requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&callback=handleITunesResponse`;
+  let requestUrl = '';
+
+  // 1. Intentar extraer el código de pista específico (?i= o &i=) si es un enlace de Apple Music
+  const matchParamId = rawQuery.match(/[?&]i=(\d+)/);
+  if (matchParamId && matchParamId[1]) {
+    const trackId = matchParamId[1];
+    requestUrl = `https://itunes.apple.com/lookup?id=${trackId}&callback=handleITunesResponse`;
+  } else {
+    // 2. Si pegaron otro tipo de link o texto, buscar por término general
+    let searchTerm = rawQuery;
+    if (rawQuery.includes('music.apple.com')) {
+      try {
+        const urlObj = new URL(rawQuery);
+        const pathSegments = urlObj.pathname.split('/').filter(Boolean);
+        if (pathSegments.length > 0) {
+          let lastSegment = pathSegments[pathSegments.length - 1];
+          if (lastSegment === 'album' || lastSegment === 'song') {
+            lastSegment = pathSegments[pathSegments.length - 2];
+          }
+          searchTerm = lastSegment.replace(/-/g, ' ');
+        }
+      } catch (e) {
+        searchTerm = rawQuery;
+      }
+    }
+    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&callback=handleITunesResponse`;
+  }
 
   const script = document.createElement('script');
   script.id = 'itunesJsonp';
@@ -354,7 +360,7 @@ function handleITunesResponse(data) {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '';
   if (!data.results || data.results.length === 0) {
-    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre y artista (ej. Ex Ex Ex Kenia Os).</p>';
+    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre y artista.</p>';
     return;
   }
 
