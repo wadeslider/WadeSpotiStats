@@ -81,8 +81,9 @@ select {
   padding: 12px; position: relative; display: flex; flex-direction: column; transition: 0.2s;
 }
 .song-card:hover { background: var(--card-hover); border-color: #333; }
-.img-container { position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; background: #222; }
-.img-container img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; }
+.img-container { position: relative; width: 100%; padding-top: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 10px; background: #222; cursor: pointer; }
+.img-container img { position: absolute; top:0; left:0; width:100%; height:100%; object-fit:cover; transition: transform 0.2s; }
+.img-container:hover img { transform: scale(1.04); }
 
 .card-title { font-size: 0.9rem; font-weight: bold; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .card-title a { color: white; text-decoration: none; }
@@ -112,10 +113,10 @@ select {
 .list-view-table tr:hover { background: var(--card-hover); }
 
 .table-song-cell { display: flex; align-items: center; gap: 10px; }
-.table-thumb { width: 38px; height: 38px; min-width: 38px; border-radius: 4px; object-fit: cover; }
+.table-thumb { width: 38px; height: 38px; min-width: 38px; border-radius: 4px; object-fit: cover; cursor: pointer; }
 .streams-text { font-family: monospace; font-size: 0.88rem; font-weight: bold; color: var(--green-spotify); }
 
-/* MODAL CON BUSCADOR ITUNES */
+/* MODALES */
 .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); display: none; justify-content: center; align-items: center; z-index: 1000; padding: 15px; }
 .modal { background: #161620; border: 1px solid var(--border-color); padding: 20px; border-radius: 12px; width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
