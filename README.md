@@ -1,44 +1,37 @@
 # 🎵 WadeSpotiStats - Kenia Os
 
-> Aplicación web personalizada y minimalista diseñada para curar, rankear y llevar el control exacto de las reproducciones (*streams*) de la discografía de **Kenia Os**.
+**WadeSpotiStats** es una aplicación web minimalista y moderna diseñada para el seguimiento preciso en tiempo real de las reproducciones (streams) de canciones en Spotify, inspirada estéticamente en la interfaz limpia de una playlist oficial de la plataforma. 
 
-![Banner Demo](https://img.shields.io/badge/Status-Activo-1db954?style=for-the-badge&logo=spotify)
-![HTML5](https://img.shields.io/badge/HTML5-E34F26?style=for-the-badge&logo=html5&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![GitHub Pages](https://img.shields.io/badge/GitHub%20Pages-222222?style=for-the-badge&logo=github&logoColor=white)
+Este proyecto está optimizado para funcionar mediante almacenamiento local (`localStorage`), permitiendo sincronizar contadores reales, visualizar el comportamiento histórico en gráficas horarias y administrar catálogos musicales de manera eficiente.
 
 ---
 
 ## ✨ Características Principales
 
-* **📊 Estadísticas en Tiempo Real:** Cálculo automático del total de canciones, la canción #1 del ranking y la suma acumulada de reproducciones exactas.
-* **🔍 Auto-completar con iTunes API:** Búsqueda integrada dentro del formulario para rellenar automáticamente títulos, portadas en HD, álbumes y fechas de lanzamiento con un solo toque.
-* **💾 Persistencia Local & Backups:** Los datos se guardan de forma segura en el navegador (`localStorage`) y cuenta con funciones de **Exportar/Importar en formato JSON** para respaldar tu catálogo.
-* **📱 Diseño Responsive & PWA:** Interfaz oscura estilo Spotify (*Dark Mode*), adaptable a móviles y computadoras, con opción de instalarse como una app nativa en la pantalla de inicio.
-* **🎛️ Múltiples Vistas:** Cambia dinámicamente entre vista de cuadrícula (Grid), tarjetas horizontales y tabla detallada.
-* **🔗 Enlaces Directos:** Acceso rápido mediante botones para abrir cada canción directamente en Spotify.
-
----
-
-## 🚀 Enlace en Vivo
-Puedes ver la aplicación funcionando en línea a través de GitHub Pages:  
-👉 **[WadeSpotiStats - Kenia Os](https://wadeslider.github.io/WadeSpotiStats/)**
+* **🎨 Interfaz Estilo Spotify:** Vista de lista vertical con carátulas cuadradas alineadas, tipografías limpias y contadores de reproducciones en color verde característico.
+* **🔄 Sincronización en Vivo:** Conexión directa mediante ID de pista para consultar contadores reales y públicos de reproducciones.
+* **⚠️ Detección de Enlaces Erróneos:** Al sincronizar, la aplicación identifica automáticamente las canciones con enlaces de Spotify inválidos o rotos y genera un reporte de atención.
+* **📈 Historial Deslizante (Base de Datos Secundaria):** Sistema optimizado de registro de evolución horaria limitado estrictamente a un máximo de las últimas **5 horas**, borrando automáticamente los registros más antiguos para evitar saturar el almacenamiento.
+* **✨ Autocompletado con iTunes:** Sección integrada para buscar y rellenar automáticamente metadatos (título, artista, álbum, fecha de lanzamiento y portadas en HD) utilizando la API de iTunes.
+* **📱 Menú Contextual Táctil (Long Press y 3 Puntos):** Permite editar o eliminar canciones fácilmente tanto en dispositivos móviles (manteniendo presionado el renglón) como en PC (mediante el botón de opciones `⋮`).
+* **💾 Respaldo y Carga de Datos:** Funciones nativas para exportar todo tu catálogo a un archivo JSON (`Backup`) y cargarlo de vuelta cuando lo necesites.
 
 ---
 
 ## 🛠️ Tecnologías Utilizadas
 
-* **HTML5 / CSS3** (Diseño moderno con variables CSS y Flexbox/Grid).
-* **JavaScript (Vanilla)** para la lógica de la interfaz, filtros, ordenamiento y almacenamiento local.
-* **Font Awesome** para la iconografía.
-* **Apple Music / iTunes Search API** para la recuperación de metadatos musicales.
+* **HTML5 / CSS3:** Estructura semántica y diseño visual responsivo inspirado en la interfaz de Spotify.
+* **JavaScript (Vanilla ES6+):** Lógica del cliente, manipulación del DOM, control de eventos táctiles/clics y peticiones asíncronas (`async/await`).
+* **Chart.js:** Librería ligera para renderizar las gráficas de evolución temporal de streams.
+* **FontAwesome:** Iconografía moderna para botones, menús y controles.
+* **LocalStorage:** Base de datos del navegador para la persistencia local de canciones e historiales.
 
 ---
 
-## ⚙️ Uso Local y Despliegue
+## 🚀 Guía de Instalación y Uso
 
-Si deseas clonar o modificar este proyecto por tu cuenta:
+Al tratarse de una aplicación web estática basada en cliente, no requiere servidores complejos de backend para funcionar:
 
-1. Clona el repositorio:
+1. Clona este repositorio o descarga los archivos fuente en tu equipo:
    ```bash
-   git clone [https://github.com/wadeslider/WadeSpotiStats.git](https://github.com/wadeslider/WadeSpotiStats.git)
+   git clone [https://github.com/tu-usuario/WadeSpotiStats.git](https://github.com/tu-usuario/WadeSpotiStats.git)
