@@ -8,6 +8,8 @@
   --text-sub: #a0a0b0;
   --border-color: #262635;
   --green-spotify: #1db954;
+  --green-up: #00b894;
+  --red-down: #ff7675;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
@@ -70,15 +72,24 @@ select {
 
 .container { padding: 0 20px; }
 
-/* VISTA PLAYLIST EXACTA DE 3 RENGLONES */
+/* VISTA PLAYLIST ESTRICTAMENTE DE 3 DATOS */
 .playlist-view { display: flex; flex-direction: column; gap: 8px; }
 .playlist-row {
   background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px;
-  padding: 10px 14px; display: flex; align-items: center; gap: 12px; cursor: pointer;
+  padding: 12px 14px; display: flex; align-items: center; gap: 14px; cursor: pointer;
   transition: background 0.2s, border-color 0.2s; user-select: none;
 }
 .playlist-row:hover { background: var(--card-hover); border-color: #383848; }
-.playlist-index { font-size: 0.9rem; color: var(--text-sub); width: 22px; text-align: center; font-weight: bold; flex-shrink: 0; }
+
+/* COLUMNA DE RANKING Y FLECHAS DE CAMBIO DE POSICIÓN */
+.playlist-rank-col {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 30px; flex-shrink: 0;
+}
+.playlist-index { font-size: 0.95rem; color: var(--text-sub); font-weight: bold; text-align: center; }
+.trend-indicator { font-size: 0.7rem; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
+.trend-up { color: var(--green-up); }
+.trend-down { color: var(--red-down); }
 
 .playlist-thumb {
   width: 52px !important; height: 52px !important;
@@ -86,20 +97,20 @@ select {
   border-radius: 6px; object-fit: cover; flex-shrink: 0; display: block;
 }
 
-/* BLOQUE DE 3 RENGLONES VERTICALES ESTRICTOS */
+/* BLOQUE DE LOS 3 DATOS EXACTOS EN ORDEN VERTICAL */
 .playlist-info {
-  flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px;
+  flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px;
 }
 .playlist-song-title {
-  font-size: 0.92rem; font-weight: bold; color: white;
+  font-size: 0.95rem; font-weight: bold; color: white;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .playlist-song-artist {
-  font-size: 0.78rem; color: var(--text-sub);
+  font-size: 0.82rem; color: var(--text-sub);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .playlist-song-streams {
-  font-family: monospace; font-size: 0.82rem; font-weight: bold; color: var(--green-spotify);
+  font-family: monospace; font-size: 0.88rem; font-weight: bold; color: var(--green-spotify);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 
