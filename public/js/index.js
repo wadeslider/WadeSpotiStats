@@ -1,13 +1,18 @@
 let songs = JSON.parse(localStorage.getItem('wadespotistats_songs')) || [];
-let currentView = 'playlist';
+let currentView = 'playlist'; // Vista inicial por defecto para evitar fallos de renderizado
 let activeChart = null;
 
-// Inicializar historial de streams asegurando consistencia
+// SEGUNDA BASE DE DATOS (HISTORIAL DESLIZANTE DE MÁXIMO 5 HORAS)
 function initSongHistory(song) {
   if (!song.history || !Array.isArray(song.history) || song.history.length === 0) {
     const baseStreams = parseInt(song.streams) || 0;
     const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     song.history = [{ time: nowString, streams: baseStreams }];
+  } else {
+    // Asegurar que nunca exceda de 5 registros (borrando los más antiguos automáticamente)
+    while (song.history.length > 5) {
+      song.history.shift();
+    }
   }
 }
 
@@ -29,9 +34,8 @@ function extractSpotifyTrackId(url) {
 async function fetchRealStreamsForSong(song) {
   try {
     const trackId = extractSpotifyTrackId(song.link);
-    if (!trackId) return; // Si no hay link o ID válido, omite
+    if (!trackId) return;
 
-    // Usamos un proxy web seguro para consultar directamente la página de MyStreamCount de esa pista
     const targetUrl = `https://www.mystreamcount.com/track/${trackId}`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
 
@@ -39,22 +43,14 @@ async function fetchRealStreamsForSong(song) {
     if (response.ok) {
       const data = await response.json();
       if (data && data.contents) {
-        // Buscamos patrones numéricos en el HTML que correspondan al contador de streams mostrado en MyStreamCount
-        // Generalmente vienen en formato con comas o dentro de etiquetas de texto del bloque total streams
         const htmlContent = data.contents;
-        
-        // Expresión regular para buscar cifras grandes con comas (ej. 28,174,215) cerca de los contadores
-        // O buscamos números estructurados en el texto fuente de la página
         let extractedStreams = null;
 
-        // Intentar buscar coincidencias directas de texto numérico con comas de 7 u 8 dígitos típicos de streams
         const matches = htmlContent.match(/>([0-9]{1,3}(?:,[0-9]{3}){2,3})</g);
         if (matches && matches.length > 0) {
-          // Tomar el número con comas y limpiarlo para convertirlo en entero
           for (let m of matches) {
             const cleanNum = m.replace(/>|</g, '').replace(/,/g, '');
             const numVal = parseInt(cleanNum, 10);
-            // Validar que sea un número de streams realista (ej. mayor a 10,000)
             if (numVal > 10000) {
               extractedStreams = numVal;
               break;
@@ -62,7 +58,6 @@ async function fetchRealStreamsForSong(song) {
           }
         }
 
-        // Si se encontró el número exacto en MyStreamCount
         if (extractedStreams && extractedStreams > 0) {
           song.streams = extractedStreams;
           
@@ -72,10 +67,13 @@ async function fetchRealStreamsForSong(song) {
           if (lastEntry && lastEntry.time === nowString) {
             lastEntry.streams = extractedStreams;
           } else {
+            // Agregar nuevo registro de hora
             song.history.push({ time: nowString, streams: extractedStreams });
-            if (song.history.length > 12) song.history.shift();
+            // REGLA DE 5 HORAS: Si supera 5 registros, se borra el primero (el más viejo)
+            if (song.history.length > 5) {
+              song.history.shift();
+            }
           }
-          console.log(`✅ Streams reales sincronizados desde MyStreamCount para "${song.title}":`, extractedStreams);
         }
       }
     }
@@ -97,7 +95,7 @@ async function manualSyncAllSongs() {
   renderSongs();
 
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
-  alert('¡Sincronización finalizada consultando MyStreamCount!');
+  alert('¡Sincronización finalizada con MyStreamCount!');
 }
 
 // SINCRONIZACIÓN AUTOMÁTICA HORARIA
@@ -225,7 +223,7 @@ async function openDetailModal(id) {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Streams Reales',
+        label: 'Streams (Últimas 5h)',
         data: dataPoints,
         borderColor: '#00a8ff',
         backgroundColor: 'rgba(0, 168, 255, 0.15)',
@@ -309,7 +307,7 @@ function handleITunesResponse(data) {
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Recuerda poner tu enlace de Spotify)</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (No olvides poner tu enlace de Spotify)</p>';
     };
     resultsDiv.appendChild(el);
   });
@@ -560,5 +558,6 @@ function renderSongs() {
   });
 }
 
+// Renderizado inmediato al cargar la página
 updateStats();
 renderSongs();
