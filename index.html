@@ -8,7 +8,7 @@
   <meta name="theme-color" content="#00a8ff">
   
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="index.css">
+  <link rel="stylesheet" href="public/css/index.css">
 </head>
 <body>
 
@@ -18,7 +18,7 @@
       <div class="header-actions">
         <button class="btn-secondary-btn" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Backup</button>
         <button class="btn-secondary-btn" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-upload"></i> Cargar</button>
-        <input type="file" id="fileInput" accept=".json" onchange="importJSON(event)">
+        <input type="file" id="fileInput" accept=".json,application/json" onchange="importJSON(event)">
         <button class="btn-main" onclick="openModal()"><i class="fa-solid fa-plus"></i> Nueva</button>
       </div>
     </div>
@@ -80,7 +80,7 @@
       <div class="itunes-search-section">
         <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde iTunes</label>
         <div class="itunes-search-box">
-          <input type="text" id="itunesQuery" placeholder="Ej: Por Siempre Kenia Os">
+          <input type="text" id="itunesQuery" placeholder="Ej: Por Siempre Kenia Os o enlace">
           <button type="button" class="btn-main" style="padding: 8px 12px; font-size:0.75rem;" onclick="searchITunes()"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
         </div>
         <div class="itunes-results" id="itunesResults"></div>
@@ -141,6 +141,6 @@
     </div>
   </div>
 
-  <script src="index.js"></script>
+  <script src="public/js/index.js"></script>
 </body>
 </html>
