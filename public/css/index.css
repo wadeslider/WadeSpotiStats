@@ -70,7 +70,7 @@ select {
 
 .container { padding: 0 20px; }
 
-/* VISTA PLAYLIST EXACTA DE 3 LÍNEAS */
+/* VISTA PLAYLIST EXACTA DE 3 RENGLONES */
 .playlist-view { display: flex; flex-direction: column; gap: 8px; }
 .playlist-row {
   background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px;
@@ -86,7 +86,7 @@ select {
   border-radius: 6px; object-fit: cover; flex-shrink: 0; display: block;
 }
 
-/* BLOQUE DE 3 LÍNEAS VERTICALES */
+/* BLOQUE DE 3 RENGLONES VERTICALES ESTRICTOS */
 .playlist-info {
   flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 2px;
 }
@@ -98,15 +98,10 @@ select {
   font-size: 0.78rem; color: var(--text-sub);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.playlist-song-meta {
-  font-size: 0.72rem; color: #777788;
+.playlist-song-streams {
+  font-family: monospace; font-size: 0.82rem; font-weight: bold; color: var(--green-spotify);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-
-.playlist-streams-box {
-  text-align: right; min-width: 110px; display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0;
-}
-.streams-text { font-family: monospace; font-size: 0.9rem; font-weight: bold; color: var(--green-spotify); }
 
 /* BOTÓN DE TRES PUNTOS */
 .options-btn {
