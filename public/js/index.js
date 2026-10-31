@@ -311,17 +311,35 @@ function closeDetailModal() {
   }
 }
 
-// BÚSQUEDA Y AUTOCOMPLETADO CON ITUNES (JSONP)
+// BÚSQUEDA Y AUTOCOMPLETADO INTELIGENTE (SOPORTA TEXTO Y ENLACES DE APPLE MUSIC)
 function searchITunes() {
-  let query = document.getElementById('itunesQuery').value.trim();
-  if (!query) return;
+  let rawQuery = document.getElementById('itunesQuery').value.trim();
+  if (!rawQuery) return;
+
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
+
+  let searchTerm = rawQuery;
+
+  if (rawQuery.includes('music.apple.com')) {
+    try {
+      const urlParts = rawQuery.split('/');
+      let slug = urlParts[urlParts.length - 1].split('?')[0];
+      if (!slug || slug === 'album' || slug === 'song') {
+        slug = urlParts[urlParts.length - 2];
+      }
+      if (slug) {
+        searchTerm = slug.replace(/-/g, ' ');
+      }
+    } catch (e) {
+      console.warn('No se pudo parsear el enlace de Apple Music, se usará tal cual');
+    }
+  }
 
   const oldScript = document.getElementById('itunesJsonp');
   if (oldScript) oldScript.remove();
 
-  let requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
+  let requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&callback=handleITunesResponse`;
 
   const script = document.createElement('script');
   script.id = 'itunesJsonp';
@@ -333,7 +351,7 @@ function handleITunesResponse(data) {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '';
   if (!data.results || data.results.length === 0) {
-    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados.</p>';
+    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre manualmente.</p>';
     return;
   }
 
@@ -356,7 +374,7 @@ function handleITunesResponse(data) {
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (No olvides poner tu enlace de Spotify)</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados con éxito! (No olvides poner tu enlace de Spotify)</p>';
     };
     resultsDiv.appendChild(el);
   });
