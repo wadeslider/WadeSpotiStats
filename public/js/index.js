@@ -18,47 +18,65 @@ function saveToStorage() {
   updateStats();
 }
 
-// CONSULTA REAL DE REPRODUCCIONES DESDE UNA API / SERVICIO DE TERCEROS
+// EXTRAER ID DE SPOTIFY
+function extractSpotifyTrackId(url) {
+  if (!url || typeof url !== 'string') return null;
+  const match = url.match(/track\/([a-zA-Z0-9]{22})/);
+  return match ? match[1] : null;
+}
+
+// CONSULTA DE REPRODUCCIONES EN TIEMPO REAL
 async function fetchRealStreamsForSong(song) {
   try {
-    if (!song.link || song.link === '#') return;
+    const trackId = extractSpotifyTrackId(song.link);
+    
+    let apiUrl = '';
+    if (trackId) {
+      // Usar servicio de consulta en vivo por Track ID
+      apiUrl = `https://api.allorigins.win/get?url=${encodeURIComponent('https://open.spotify.com/embed/track/' + trackId)}`;
+    } else {
+      // Si no hay ID directo, intentar buscar mediante título y artista
+      const searchQuery = encodeURIComponent(`${song.title} ${song.artist}`);
+      apiUrl = `https://itunes.apple.com/search?term=${searchQuery}&entity=song&limit=1`;
+    }
 
-    const match = song.link.match(/track\/([a-zA-Z0-9]+)/);
-    if (!match || !match[1]) return;
-    const trackId = match[1];
-
-    const response = await fetch(`https://spotify-proxy.checkleaked.cc/spotify-data/partner/track/count?id=${trackId}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json'
-      }
-    });
-
+    const response = await fetch(apiUrl);
+    
     if (response.ok) {
       const data = await response.json();
-      if (data && data.streams !== undefined && data.streams !== null) {
-        const realStreams = Number(data.streams);
-        if (realStreams > 0 && realStreams !== song.streams) {
-          song.streams = realStreams;
-          
-          const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          const lastEntry = song.history[song.history.length - 1];
-          
-          if (lastEntry && lastEntry.time === nowString) {
-            lastEntry.streams = realStreams;
-          } else {
-            song.history.push({ time: nowString, streams: realStreams });
-            if (song.history.length > 12) song.history.shift();
-          }
+      let fetchedStreams = null;
+
+      if (trackId && data.contents) {
+        // Extraer metadatos de reproducciones directas del embed en caso de respuesta HTML/JSON
+        const matchStreams = data.contents.match(/"playcount":(\d+)/) || data.contents.match(/listeners":(\d+)/);
+        if (matchStreams && matchStreams[1]) {
+          fetchedStreams = Number(matchStreams[1]);
         }
+      }
+
+      // Si se obtuvo un conteo real válido superior a 0
+      if (fetchedStreams && fetchedStreams > 0) {
+        song.streams = fetchedStreams;
+        const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const lastEntry = song.history[song.history.length - 1];
+
+        if (lastEntry && lastEntry.time === nowString) {
+          lastEntry.streams = fetchedStreams;
+        } else {
+          song.history.push({ time: nowString, streams: fetchedStreams });
+          if (song.history.length > 12) song.history.shift();
+        }
+        console.log(`✅ Streams actualizados para "${song.title}":`, fetchedStreams);
+      } else {
+        console.warn(`⚠️ No se detectó un contador público directo para "${song.title}". Verifica que el enlace contenga el ID de track (open.spotify.com/track/ID).`);
       }
     }
   } catch (error) {
-    console.warn('No se pudo obtener el stream en tiempo real para:', song.title, error);
+    console.error('❌ Error al sincronizar reproducciones en tiempo real:', song.title, error);
   }
 }
 
-// FUNCIÓN DE SINCRONIZACIÓN MANUAL (CONECTADA AL NUEVO BOTÓN)
+// SINCRONIZACIÓN MANUAL (CONECTADA AL BOTÓN)
 async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
@@ -71,10 +89,10 @@ async function manualSyncAllSongs() {
   renderSongs();
 
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
-  alert('¡Sincronización completada con éxito!');
+  alert('¡Proceso de sincronización finalizado! Revisa la lista o la gráfica para ver los cambios.');
 }
 
-// SINCRONIZACIÓN AUTOMÁTICA CADA HORA
+// SINCRONIZACIÓN AUTOMÁTICA HORARIA
 async function updateRealStreamsAutomatically() {
   const lastUpdate = localStorage.getItem('wadespotistats_last_real_update');
   const now = Date.now();
@@ -102,7 +120,7 @@ function formatDate(dateStr) {
   const cleanDate = dateStr.split('T')[0];
   const parts = cleanDate.split('-');
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`; // DD/MM/YYYY
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
   }
   return cleanDate;
 }
@@ -247,31 +265,7 @@ function searchITunes() {
   const oldScript = document.getElementById('itunesJsonp');
   if (oldScript) oldScript.remove();
 
-  let requestUrl = '';
-
-  if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
-    let matchId = query.match(/\/id(\d+)/) || query.match(/i=(\d+)/);
-    
-    if (!matchId) {
-      const cleanPath = query.split('?')[0];
-      const segments = cleanPath.split('/').filter(Boolean);
-      for (let i = segments.length - 1; i >= 0; i--) {
-        if (/^\d{5,}$/.test(segments[i])) {
-          matchId = [null, segments[i]];
-          break;
-        }
-      }
-    }
-
-    if (matchId && matchId[1]) {
-      requestUrl = `https://itunes.apple.com/lookup?id=${matchId[1]}&callback=handleITunesResponse`;
-    } else {
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace.</p>';
-      return;
-    }
-  } else {
-    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
-  }
+  let requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
 
   const script = document.createElement('script');
   script.id = 'itunesJsonp';
@@ -290,7 +284,6 @@ function handleITunesResponse(data) {
   data.results.forEach(item => {
     const coverHd = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '1000x1000bb') : '';
     const releaseDate = item.releaseDate ? item.releaseDate.split('T')[0] : '';
-    const spotifyAutoLink = `https://open.spotify.com/search/${encodeURIComponent(item.artistName + ' ' + item.trackName)}`;
 
     const el = document.createElement('div');
     el.className = 'itunes-item';
@@ -306,9 +299,8 @@ function handleITunesResponse(data) {
       document.getElementById('artistInput').value = item.artistName;
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
-      document.getElementById('linkInput').value = spotifyAutoLink;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos y enlace aplicados!</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Recuerda agregar el enlace exacto de Spotify de la canción)</p>';
     };
     resultsDiv.appendChild(el);
   });
