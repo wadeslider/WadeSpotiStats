@@ -27,7 +27,7 @@
     </div>
   </header>
 
-  <!-- PANEL DE ESTADÍSTICAS -->
+  <!-- PANEL DE ESTADÍSTICAS (4 TARJETAS SIMÉTRICAS) -->
   <div class="stats-bar">
     <div class="stat-card">
       <div class="stat-val" id="statCount">0</div>
@@ -40,6 +40,10 @@
     <div class="stat-card">
       <div class="stat-val" id="statTotalStreams">0</div>
       <div class="stat-label">Streams Totales</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" id="statAverageStreams">0</div>
+      <div class="stat-label">Promedio / Canción</div>
     </div>
   </div>
 
@@ -74,9 +78,9 @@
       </div>
 
       <div class="itunes-search-section">
-        <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde iTunes</label>
+        <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde Apple Music / iTunes</label>
         <div class="itunes-search-box">
-          <input type="text" id="itunesQuery" placeholder="Ej: Por Siempre Kenia Os o enlace">
+          <input type="text" id="itunesQuery" placeholder="Pega tu enlace o busca nombre...">
           <button type="button" class="btn-main" style="padding: 8px 12px; font-size:0.75rem;" onclick="searchITunes()"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
         </div>
         <div class="itunes-results" id="itunesResults"></div>
@@ -164,7 +168,6 @@
           </div>
         </div>
 
-        <!-- DATOS EXPLÍCITOS DE LA CANCIÓN -->
         <div style="background: #14141c; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.82rem;">
           <div><span style="color:var(--text-sub);">Álbum:</span> <strong id="detailAlbum" style="color:white;">-</strong></div>
           <div><span style="color:var(--text-sub);">Tipo:</span> <strong id="detailType" style="color:white;">-</strong></div>
