@@ -158,6 +158,11 @@ function updateStats() {
   const totalStreams = songs.reduce((sum, s) => sum + (parseInt(s.streams) || 0), 0);
   document.getElementById('statTotalStreams').innerText = formatNumber(totalStreams);
 
+  // Calcular promedio por canción
+  const avgStreams = songs.length > 0 ? Math.round(totalStreams / songs.length) : 0;
+  const avgEl = document.getElementById('statAverageStreams');
+  if (avgEl) avgEl.innerText = formatNumber(avgStreams);
+
   if(songs.length > 0) {
     const topSong = [...songs].sort((a,b) => b.streams - a.streams)[0];
     document.getElementById('statTop').innerText = topSong.title;
@@ -207,7 +212,7 @@ function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
 
-// GESTIÓN DEL MENÚ CONTEXTUAL (TRES PUNTOS / LONG PRESS)
+// GESTIÓN DEL MENÚ CONTEXTUAL
 function openContextMenu(id, event) {
   if (event) event.stopPropagation();
   currentContextMenuSongId = id;
@@ -311,7 +316,7 @@ function closeDetailModal() {
   }
 }
 
-// BÚSQUEDA DE ITUNES CON EXTRACCIÓN DE ID EXACTO (CÓDIGO ORIGINAL QUE SÍ FUNCIONABA)
+// BÚSQUEDA EXACTA POR CÓDIGO (EXTRAE ID DE APPLE MUSIC)
 function searchITunes() {
   let query = document.getElementById('itunesQuery').value.trim();
   if (!query) return;
@@ -517,17 +522,19 @@ function renderSongs() {
     return;
   }
 
-  // RENDERIZADO ESTRICTO DE 3 LÍNEAS (NOMBRE, ARTISTA, REPRODUCCIONES)
+  // RENDERIZADO CON PUNTO AZUL (SI SE MANTIENE) O FLECHAS (SI SUBE/BAJA)
   container.className = 'playlist-view';
   container.innerHTML = list.map((s, i) => {
     const currentRank = i + 1;
     let trendHtml = '';
 
-    if (s.lastRank) {
+    if (s.lastRank !== undefined && s.lastRank !== null) {
       if (currentRank < s.lastRank) {
         trendHtml = `<div class="trend-indicator trend-up" title="Subió de puesto"><i class="fa-solid fa-arrow-up"></i></div>`;
       } else if (currentRank > s.lastRank) {
         trendHtml = `<div class="trend-indicator trend-down" title="Bajó de puesto"><i class="fa-solid fa-arrow-down"></i></div>`;
+      } else {
+        trendHtml = `<div class="trend-indicator trend-equal" title="Se mantiene"><i class="fa-solid fa-circle"></i></div>`;
       }
     }
 
