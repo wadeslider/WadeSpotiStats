@@ -14,8 +14,33 @@ function itunesSearch(){
 }
 function artistIdsFromForm(){return [$('trackArtistText').value,...$('trackCollabs').value.split(',')].map(x=>x.trim()).filter(Boolean).map(W.ensureArtist)}
 $('addTrackBtn').addEventListener('click',()=>open());$('trackSearch').addEventListener('input',render);$('trackSort').addEventListener('change',render);$('itunesSearchBtn').addEventListener('click',itunesSearch);
-$('syncBtn').addEventListener('click',async e=>{const b=e.currentTarget;b.disabled=true;b.textContent='Sincronizando…';const r=await W.syncAll();b.disabled=false;b.textContent='↻ Sincronizar';render();alert(`Sincronización terminada.\nCorrectas: ${r.success}\nNo disponibles: ${r.failed}`)});
-form.addEventListener('submit',e=>{e.preventDefault();const id=$('trackId').value,artistIds=artistIdsFromForm();if(!artistIds.length){alert('Indica al menos un artista.');return}const data={title:$('trackTitle').value.trim(),streams:W.num($('trackStreamInput').value),artistIds,artist:W.getArtistNames({artistIds}),album:$('trackAlbum').value.trim(),type:$('trackType').value,date:$('trackDate').value,cover:$('trackCover').value.trim(),link:$('trackLink').value.trim()};if(id){const s=W.getSongById(id);Object.assign(s,data)}else W.songs.push({id:W.uid('song'),...data,history:[{at:new Date().toISOString(),streams:data.streams}],createdAt:new Date().toISOString()});W.saveSongs();W.saveArtists();modal.classList.remove('open');render()});
+form.addEventListener('submit',async e=>{
+ e.preventDefault();
+ const submit=form.querySelector('.modal-actions .btn-primary');
+ if(submit?.disabled)return;
+ const id=$('trackId').value,artistIds=artistIdsFromForm();
+ if(!artistIds.length){alert('Indica al menos un artista.');return}
+ const data={title:$('trackTitle').value.trim(),streams:W.num($('trackStreamInput').value),artistIds,artist:W.getArtistNames({artistIds}),album:$('trackAlbum').value.trim(),type:$('trackType').value,date:$('trackDate').value,cover:$('trackCover').value.trim(),link:$('trackLink').value.trim()};
+ let song;
+ if(id){song=W.getSongById(id);Object.assign(song,data)}
+ else{song={id:W.uid('song'),...data,history:[{at:new Date().toISOString(),streams:data.streams}],createdAt:new Date().toISOString()};W.songs.push(song)}
+ W.saveSongs();W.saveArtists();
+ if(submit){submit.disabled=true;submit.textContent='Guardando y sincronizando…'}
+ if(!W.extractSpotifyTrackId(song.link)){
+  modal.classList.remove('open');render();
+  if(submit){submit.disabled=false;submit.textContent='Guardar canción'}
+  alert('Canción guardada. Para consultar sus streams automáticamente, agrega un enlace válido de Spotify.');
+  return;
+ }
+ const result=await W.syncSong(song);
+ modal.classList.remove('open');render();
+ if(submit){submit.disabled=false;submit.textContent='Guardar canción'}
+ if(result.ok)alert(`Canción guardada y sincronizada.
+Streams actuales: ${W.fmt(result.value)}`);
+ else alert(`La canción se guardó, pero no se pudieron sincronizar sus streams.
+Motivo: ${result.reason}
+Se conservaron los streams anteriores. La próxima revisión automática será a las 9:00 a. m.`);
+});
 document.addEventListener('click',e=>{const edit=e.target.closest('[data-edit]'),detail=e.target.closest('[data-detail]');if(edit)open(W.getSongById(edit.dataset.edit));if(detail)showDetail(W.getSongById(detail.dataset.detail))});
 function showDetail(s){if(!s)return;$('detailTitle').textContent=s.title;$('detailBody').innerHTML=`<div class="detail-head">${W.coverOf(s)?`<img class="detail-cover" src="${W.clean(W.coverOf(s))}" alt="">`:''}<div><h4>${W.clean(s.title)}</h4><p>${W.clean(W.getArtistNames(s))} · ${W.clean(s.album||'Sin álbum')}</p></div></div><div class="detail-stats"><div class="detail-stat"><small>STREAMS ACTUALES</small><strong>${W.fmt(s.streams)}</strong></div><div class="detail-stat"><small>CRECIMIENTO REGISTRADO</small><strong>${W.fmt(W.getGrowth(s))}</strong></div><div class="detail-stat"><small>REGISTROS</small><strong>${s.history?.length||0}</strong></div><div class="detail-stat"><small>LANZAMIENTO</small><strong>${W.clean(s.date||'Sin fecha')}</strong></div></div><div class="notice">El historial registra snapshots guardados al sincronizar. El crecimiento se calcula entre el primer y último registro disponible.</div>${s.link?`<a class="btn btn-primary" target="_blank" rel="noopener" href="${W.clean(s.link)}">Abrir en Spotify ↗</a>`:''}<button class="btn btn-danger" id="deleteTrackBtn">Eliminar canción</button>`;$('detailModal').classList.add('open');$('deleteTrackBtn').onclick=()=>{if(confirm('¿Eliminar esta canción de tu biblioteca?')){W.songs.splice(W.songs.findIndex(x=>x.id===s.id),1);W.saveSongs();$('detailModal').classList.remove('open');render()}}}
 window.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-backdrop.open').forEach(m=>m.classList.remove('open'))});

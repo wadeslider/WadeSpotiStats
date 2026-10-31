@@ -14,7 +14,6 @@ function render(){
 }
 function sum(id){return W.songs.filter(s=>(s.artistIds||[]).includes(id)).reduce((n,s)=>n+W.num(s.streams),0)}
 $('backupBtn').addEventListener('click',W.exportBackup);
-$('syncBtn').addEventListener('click',async e=>{const b=e.currentTarget;b.disabled=true;b.textContent='Sincronizando…';const r=await W.syncAll();b.disabled=false;b.textContent='↻ Sincronizar';render();alert(`Sincronización terminada.\nCorrectas: ${r.success}\nNo disponibles: ${r.failed}`)});
 document.addEventListener('click',e=>{const d=e.target.closest('[data-detail]'),ed=e.target.closest('[data-edit]');if(d)location.href=`track.html?id=${encodeURIComponent(d.dataset.detail)}`;if(ed)location.href=`track.html?edit=${encodeURIComponent(ed.dataset.edit)}`});
 render();
 })();
