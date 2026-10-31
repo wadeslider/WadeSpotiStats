@@ -1,10 +1,89 @@
 let songs = JSON.parse(localStorage.getItem('wadespotistats_songs')) || [];
 let currentView = 'grid';
+let activeChart = null;
+
+// Inicializar historial de streams asegurando consistencia
+function initSongHistory(song) {
+  if (!song.history || !Array.isArray(song.history) || song.history.length === 0) {
+    const baseStreams = parseInt(song.streams) || 0;
+    const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    song.history = [{ time: nowString, streams: baseStreams }];
+  }
+}
+
+songs.forEach(initSongHistory);
 
 function saveToStorage() {
   localStorage.setItem('wadespotistats_songs', JSON.stringify(songs));
   updateStats();
 }
+
+// CONSULTA REAL DE REPRODUCCIONES DESDE UNA API / SERVICIO DE TERCEROS
+async function fetchRealStreamsForSong(song) {
+  try {
+    // Si la canción tiene un enlace de Spotify válido, podemos extraer su ID o consultar servicios de terceros
+    if (!song.link || song.link === '#') return;
+
+    // Extraer ID de la pista de Spotify desde el enlace (ej: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT)
+    const match = song.link.match(/track\/([a-zA-Z0-9]+)/);
+    if (!match || !match[1]) return;
+    const trackId = match[1];
+
+    // Ejemplo de consulta a endpoint público/proxy de streams en tiempo real (p.ej. integrando un servicio de terceros o API de conteo)
+    // Usamos una petición segura al servicio de consulta externa de streams
+    const response = await fetch(`https://spotify-proxy.checkleaked.cc/spotify-data/partner/track/count?id=${trackId}`, {
+      method: 'GET',
+      headers: {
+        'Accept': 'application/json'
+      }
+    });
+
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.streams !== undefined && data.streams !== null) {
+        const realStreams = Number(data.streams);
+        if (realStreams > 0 && realStreams !== song.streams) {
+          song.streams = realStreams;
+          
+          // Registrar nuevo punto en el historial horario real
+          const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const lastEntry = song.history[song.history.length - 1];
+          
+          // Evitar duplicar la misma hora exacta, actualizando o agregando
+          if (lastEntry && lastEntry.time === nowString) {
+            lastEntry.streams = realStreams;
+          } else {
+            song.history.push({ time: nowString, streams: realStreams });
+            if (song.history.length > 12) song.history.shift(); // Mantener un historial limpio
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn('No se pudo obtener el stream en tiempo real para:', song.title, error);
+  }
+}
+
+// FUNCIÓN PARA ACTUALIZAR TODOS LOS DATOS REALES DE FORMA AUTOMÁTICA CADA HORA
+async function updateRealStreamsAutomatically() {
+  const lastUpdate = localStorage.getItem('wadespotistats_last_real_update');
+  const now = Date.now();
+  const ONE_HOUR = 60 * 60 * 1000;
+
+  // Si ha pasado una hora o nunca se ha actualizado, consultamos las APIs reales
+  if (!lastUpdate || (now - parseInt(lastUpdate)) >= ONE_HOUR) {
+    for (let song of songs) {
+      await fetchRealStreamsForSong(song);
+    }
+    localStorage.setItem('wadespotistats_last_real_update', now.toString());
+    saveToStorage();
+    renderSongs();
+  }
+}
+
+// Ejecutar sincronización real al iniciar y verificar cada hora
+updateRealStreamsAutomatically();
+setInterval(updateRealStreamsAutomatically, 60 * 1000);
 
 function formatNumber(num) {
   return Number(num).toLocaleString('es-MX');
@@ -82,6 +161,79 @@ function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
 
+// MENÚ INTERACTIVO Y GRÁFICA DE EVOLUCIÓN REAL AL HACER CLIC EN LA FOTO
+async function openDetailModal(id) {
+  const song = songs.find(s => Number(s.id) === Number(id));
+  if (!song) return;
+
+  // Intentar refrescar el dato real justo al abrir el menú de la canción
+  await fetchRealStreamsForSong(song);
+  saveToStorage();
+
+  initSongHistory(song);
+
+  document.getElementById('detailCover').src = song.cover || 'https://via.placeholder.com/300/181822/ffffff?text=Portada';
+  document.getElementById('detailSongTitle').innerText = song.title;
+  document.getElementById('detailSongArtist').innerText = `${song.artist} • ${song.album || 'Álbum'} (${song.type})`;
+  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams reales totales`;
+  document.getElementById('detailSpotifyLink').href = (song.link && song.link !== '#') ? song.link : 'https://open.spotify.com';
+
+  document.getElementById('detailModalOverlay').style.display = 'flex';
+
+  // Renderizar o actualizar gráfico con Chart.js
+  const ctx = document.getElementById('streamsChart').getContext('2d');
+  if (activeChart) {
+    activeChart.destroy();
+  }
+
+  const labels = song.history.map(h => h.time);
+  const dataPoints = song.history.map(h => h.streams);
+
+  activeChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Streams Reales',
+        data: dataPoints,
+        borderColor: '#00a8ff',
+        backgroundColor: 'rgba(0, 168, 255, 0.15)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#1db954',
+        pointBorderColor: '#ffffff',
+        pointRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#a0a0b0', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#a0a0b0', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
+function closeDetailModal() {
+  document.getElementById('detailModalOverlay').style.display = 'none';
+  if (activeChart) {
+    activeChart.destroy();
+    activeChart = null;
+  }
+}
+
 function searchITunes() {
   let query = document.getElementById('itunesQuery').value.trim();
   if (!query) return;
@@ -93,15 +245,12 @@ function searchITunes() {
 
   let requestUrl = '';
 
-  // Si pegan un enlace de Apple Music / iTunes
   if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
-    // Busca patrones tipo /id12345, i=12345, o números largos al final de la URL
     let matchId = query.match(/\/id(\d+)/) || query.match(/i=(\d+)/);
     
     if (!matchId) {
       const cleanPath = query.split('?')[0];
       const segments = cleanPath.split('/').filter(Boolean);
-      // Revisa los segmentos desde el final buscando una secuencia de puros números
       for (let i = segments.length - 1; i >= 0; i--) {
         if (/^\d{5,}$/.test(segments[i])) {
           matchId = [null, segments[i]];
@@ -113,7 +262,7 @@ function searchITunes() {
     if (matchId && matchId[1]) {
       requestUrl = `https://itunes.apple.com/lookup?id=${matchId[1]}&callback=handleITunesResponse`;
     } else {
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace. Prueba buscando por nombre.</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace.</p>';
       return;
     }
   } else {
@@ -130,7 +279,7 @@ function handleITunesResponse(data) {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '';
   if (!data.results || data.results.length === 0) {
-    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre exacto.</p>';
+    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados.</p>';
     return;
   }
 
@@ -152,27 +301,36 @@ function handleITunesResponse(data) {
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Agrega tu link de Spotify)</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados!</p>';
     };
     resultsDiv.appendChild(el);
   });
 }
 
-function saveSong(e) {
+async function saveSong(e) {
   e.preventDefault();
   const idVal = document.getElementById('songId').value;
+  const initialStreams = parseInt(document.getElementById('streamsInput').value) || 0;
   
+  let existingSong = null;
+  if (idVal !== "") {
+    existingSong = songs.find(s => Number(s.id) === Number(idVal));
+  }
+
   const songData = {
     id: idVal ? Number(idVal) : Date.now(),
     title: document.getElementById('titleInput').value,
     artist: document.getElementById('artistInput').value || 'Kenia Os',
     album: document.getElementById('albumInput').value || 'Sin Álbum',
     type: document.getElementById('typeInput').value,
-    streams: parseInt(document.getElementById('streamsInput').value) || 0,
+    streams: initialStreams,
     date: document.getElementById('dateInput').value || '',
     cover: document.getElementById('coverInput').value || 'https://via.placeholder.com/300/181822/ffffff?text=Portada',
-    link: document.getElementById('linkInput').value || '#'
+    link: document.getElementById('linkInput').value || '#',
+    history: existingSong ? existingSong.history : null
   };
+
+  initSongHistory(songData);
 
   if (idVal !== "" && idVal !== null && idVal !== undefined) {
     const index = songs.findIndex(s => Number(s.id) === Number(idVal));
@@ -187,6 +345,11 @@ function saveSong(e) {
 
   saveToStorage();
   closeModal();
+  renderSongs();
+
+  // Consultar el stream real de inmediato en segundo plano al guardar la canción
+  await fetchRealStreamsForSong(songData);
+  saveToStorage();
   renderSongs();
 }
 
@@ -216,22 +379,27 @@ function importJSON(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (Array.isArray(imported)) {
-        songs = imported.map(s => ({
-          id: s.id ? Number(s.id) : Date.now() + Math.random(),
-          title: s.title || 'Sin Título',
-          artist: s.artist || 'Kenia Os',
-          album: s.album || 'Sin Álbum',
-          type: s.type || 'Sencillo',
-          streams: Number(s.streams) || 0,
-          date: s.date ? s.date.split('T')[0] : '',
-          cover: s.cover || '',
-          link: s.link || '#'
-        }));
+        songs = imported.map(s => {
+          const mapped = {
+            id: s.id ? Number(s.id) : Date.now() + Math.random(),
+            title: s.title || 'Sin Título',
+            artist: s.artist || 'Kenia Os',
+            album: s.album || 'Sin Álbum',
+            type: s.type || 'Sencillo',
+            streams: Number(s.streams) || 0,
+            date: s.date ? s.date.split('T')[0] : '',
+            cover: s.cover || '',
+            link: s.link || '#',
+            history: s.history || null
+          };
+          initSongHistory(mapped);
+          return mapped;
+        });
         saveToStorage();
         renderSongs();
         alert('¡Datos y respaldo cargados con éxito!');
       } else {
-        alert('El archivo JSON no tiene el formato de lista correcto.');
+        alert('El archivo JSON no tiene el formato correcto.');
       }
     } catch (err) {
       alert('Error al leer o parsear el archivo JSON.');
@@ -277,7 +445,7 @@ function renderSongs() {
           <button class="action-btn edit-btn" data-id="${s.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
           <button class="action-btn delete-btn" data-id="${s.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
         </div>
-        <div class="img-container">
+        <div class="img-container img-detail-trigger" data-id="${s.id}" title="Ver menú y gráfica de evolución real">
           <img src="${s.cover}" alt="${s.title}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
         </div>
         <div class="card-title"><a href="${s.link}" target="_blank">${s.title}</a></div>
@@ -293,7 +461,7 @@ function renderSongs() {
     container.className = 'horizontal-view';
     container.innerHTML = list.map(s => `
       <div class="h-card">
-        <div class="img-container">
+        <div class="img-container img-detail-trigger" data-id="${s.id}" title="Ver menú y gráfica de evolución real">
           <img src="${s.cover}" alt="${s.title}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
         </div>
         <div class="h-details">
@@ -331,7 +499,7 @@ function renderSongs() {
                 <td style="color:var(--text-sub); width: 25px;">${i + 1}</td>
                 <td>
                   <div class="table-song-cell">
-                    <img class="table-thumb" src="${s.cover}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
+                    <img class="table-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver menú y gráfica de evolución real" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
                     <div>
                       <div style="font-weight:bold;"><a href="${s.link}" target="_blank" style="color:white; text-decoration:none;">${s.title}</a></div>
                       <div style="color:var(--text-sub); font-size:0.75rem;">${s.artist}</div>
@@ -358,6 +526,9 @@ function renderSongs() {
   });
   document.querySelectorAll('.delete-btn').forEach(btn => {
     btn.onclick = () => deleteSong(btn.getAttribute('data-id'));
+  });
+  document.querySelectorAll('.img-detail-trigger').forEach(el => {
+    el.onclick = () => openDetailModal(el.getAttribute('data-id'));
   });
 }
 
