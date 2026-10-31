@@ -8,6 +8,8 @@
   <meta name="theme-color" content="#00a8ff">
   
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- Chart.js para las gráficas de evolución horaria -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="public/css/index.css">
 </head>
 <body>
@@ -76,7 +78,6 @@
         <button class="close-modal" onclick="closeModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
-      <!-- SECCIÓN API ITUNES -->
       <div class="itunes-search-section">
         <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde iTunes</label>
         <div class="itunes-search-box">
@@ -138,6 +139,44 @@
           <button type="submit" class="btn-main">Guardar</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL INTERACTIVO DE DETALLES Y GRÁFICA HORARIA -->
+  <div class="modal-overlay" id="detailModalOverlay">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <h3 id="detailModalTitle"><i class="fa-solid fa-chart-line" style="color:var(--accent);"></i> Evolución de Streams Reales</h3>
+        <button class="close-modal" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div id="songDetailContent" style="display: flex; flex-direction: column; gap: 15px;">
+        <div style="display: flex; gap: 12px; align-items: center;">
+          <img id="detailCover" src="" alt="" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover;">
+          <div>
+            <div id="detailSongTitle" style="font-weight: bold; font-size: 1.1rem; color: white;"></div>
+            <div id="detailSongArtist" style="font-size: 0.85rem; color: var(--text-sub);"></div>
+            <div id="detailSongStreams" class="streams-text" style="margin-top: 4px; font-size: 1rem;"></div>
+          </div>
+        </div>
+
+        <div style="background: #0e0e14; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
+          <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; display: flex; justify-content: space-between;">
+            <span>📈 Comportamiento histórico (Cada hora)</span>
+            <span style="font-size: 0.75rem; color: var(--accent);">Sincronización activa</span>
+          </div>
+          <div style="position: relative; height: 220px; width: 100%;">
+            <canvas id="streamsChart"></canvas>
+          </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <a id="detailSpotifyLink" href="#" target="_blank" class="btn-main" style="text-decoration: none; font-size: 0.8rem; background-color: var(--green-spotify);">
+            <i class="fa-brands fa-spotify"></i> Escuchar en Spotify
+          </a>
+          <button type="button" class="btn-secondary" onclick="closeDetailModal()">Cerrar</button>
+        </div>
+      </div>
     </div>
   </div>
 
