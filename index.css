@@ -2,8 +2,8 @@
   --bg-color: #0b0b10;
   --card-bg: #121218;
   --card-hover: #1e1e28;
-  --accent: #ff2d75;
-  --accent-hover: #e02463;
+  --accent: #00a8ff;
+  --accent-hover: #0082e6;
   --text-main: #ffffff;
   --text-sub: #a0a0b0;
   --border-color: #262635;
@@ -14,7 +14,7 @@
 body { background-color: var(--bg-color); color: var(--text-main); padding-bottom: 60px; min-height: 100vh; }
 
 header {
-  background: linear-gradient(180deg, #2b0816 0%, var(--bg-color) 100%);
+  background: linear-gradient(180deg, #05192d 0%, var(--bg-color) 100%);
   padding: 24px 20px 15px;
   display: flex;
   flex-direction: column;
