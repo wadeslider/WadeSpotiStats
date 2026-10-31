@@ -21,16 +21,12 @@ function saveToStorage() {
 // CONSULTA REAL DE REPRODUCCIONES DESDE UNA API / SERVICIO DE TERCEROS
 async function fetchRealStreamsForSong(song) {
   try {
-    // Si la canción tiene un enlace de Spotify válido, podemos extraer su ID o consultar servicios de terceros
     if (!song.link || song.link === '#') return;
 
-    // Extraer ID de la pista de Spotify desde el enlace (ej: https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT)
     const match = song.link.match(/track\/([a-zA-Z0-9]+)/);
     if (!match || !match[1]) return;
     const trackId = match[1];
 
-    // Ejemplo de consulta a endpoint público/proxy de streams en tiempo real (p.ej. integrando un servicio de terceros o API de conteo)
-    // Usamos una petición segura al servicio de consulta externa de streams
     const response = await fetch(`https://spotify-proxy.checkleaked.cc/spotify-data/partner/track/count?id=${trackId}`, {
       method: 'GET',
       headers: {
@@ -45,16 +41,14 @@ async function fetchRealStreamsForSong(song) {
         if (realStreams > 0 && realStreams !== song.streams) {
           song.streams = realStreams;
           
-          // Registrar nuevo punto en el historial horario real
           const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const lastEntry = song.history[song.history.length - 1];
           
-          // Evitar duplicar la misma hora exacta, actualizando o agregando
           if (lastEntry && lastEntry.time === nowString) {
             lastEntry.streams = realStreams;
           } else {
             song.history.push({ time: nowString, streams: realStreams });
-            if (song.history.length > 12) song.history.shift(); // Mantener un historial limpio
+            if (song.history.length > 12) song.history.shift();
           }
         }
       }
@@ -64,13 +58,11 @@ async function fetchRealStreamsForSong(song) {
   }
 }
 
-// FUNCIÓN PARA ACTUALIZAR TODOS LOS DATOS REALES DE FORMA AUTOMÁTICA CADA HORA
 async function updateRealStreamsAutomatically() {
   const lastUpdate = localStorage.getItem('wadespotistats_last_real_update');
   const now = Date.now();
   const ONE_HOUR = 60 * 60 * 1000;
 
-  // Si ha pasado una hora o nunca se ha actualizado, consultamos las APIs reales
   if (!lastUpdate || (now - parseInt(lastUpdate)) >= ONE_HOUR) {
     for (let song of songs) {
       await fetchRealStreamsForSong(song);
@@ -81,7 +73,6 @@ async function updateRealStreamsAutomatically() {
   }
 }
 
-// Ejecutar sincronización real al iniciar y verificar cada hora
 updateRealStreamsAutomatically();
 setInterval(updateRealStreamsAutomatically, 60 * 1000);
 
@@ -161,15 +152,12 @@ function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
 
-// MENÚ INTERACTIVO Y GRÁFICA DE EVOLUCIÓN REAL AL HACER CLIC EN LA FOTO
 async function openDetailModal(id) {
   const song = songs.find(s => Number(s.id) === Number(id));
   if (!song) return;
 
-  // Intentar refrescar el dato real justo al abrir el menú de la canción
   await fetchRealStreamsForSong(song);
   saveToStorage();
-
   initSongHistory(song);
 
   document.getElementById('detailCover').src = song.cover || 'https://via.placeholder.com/300/181822/ffffff?text=Portada';
@@ -180,7 +168,6 @@ async function openDetailModal(id) {
 
   document.getElementById('detailModalOverlay').style.display = 'flex';
 
-  // Renderizar o actualizar gráfico con Chart.js
   const ctx = document.getElementById('streamsChart').getContext('2d');
   if (activeChart) {
     activeChart.destroy();
@@ -286,6 +273,10 @@ function handleITunesResponse(data) {
   data.results.forEach(item => {
     const coverHd = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '1000x1000bb') : '';
     const releaseDate = item.releaseDate ? item.releaseDate.split('T')[0] : '';
+    
+    // Generar automáticamente un enlace de búsqueda directa en Spotify usando el artista y el nombre de la canción
+    const spotifyAutoLink = `https://open.spotify.com/search/${encodeURIComponent(item.artistName + ' ' + item.trackName)}`;
+
     const el = document.createElement('div');
     el.className = 'itunes-item';
     el.innerHTML = `
@@ -300,8 +291,9 @@ function handleITunesResponse(data) {
       document.getElementById('artistInput').value = item.artistName;
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
+      document.getElementById('linkInput').value = spotifyAutoLink; // <--- ¡Enlace automático generado!
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados!</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos y enlace de Spotify aplicados automáticamente!</p>';
     };
     resultsDiv.appendChild(el);
   });
@@ -347,7 +339,6 @@ async function saveSong(e) {
   closeModal();
   renderSongs();
 
-  // Consultar el stream real de inmediato en segundo plano al guardar la canción
   await fetchRealStreamsForSong(songData);
   saveToStorage();
   renderSongs();
