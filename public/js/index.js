@@ -81,10 +81,16 @@ async function fetchRealStreamsForSong(song) {
   }
 }
 
-// SINCRONIZACIÓN MANUAL CON REPORTE REAL DE ENLACES ROTOS
+// SINCRONIZACIÓN MANUAL GUARDANDO POSICIONES PREVIAS PARA TENDENCIAS
 async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+
+  // Guardar posiciones anteriores antes de actualizar
+  const previousOrder = getFilteredAndSortedSongs();
+  previousOrder.forEach((s, idx) => {
+    s.lastRank = idx + 1;
+  });
 
   let failedSongs = [];
 
@@ -104,7 +110,7 @@ async function manualSyncAllSongs() {
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
 
   if (failedSongs.length > 0) {
-    alert(`Sincronización finalizada.\n\n⚠️ Las siguientes canciones tienen enlaces incorrectos y necesitan revisión:\n\n${failedSongs.join('\n')}`);
+    alert(`Sincronización finalizada.\n\n⚠️ Enlaces incorrectos detectados:\n\n${failedSongs.join('\n')}`);
   } else {
     alert('¡Sincronización completada con éxito!');
   }
@@ -117,6 +123,11 @@ async function updateRealStreamsAutomatically() {
   const ONE_HOUR = 60 * 60 * 1000;
 
   if (!lastUpdate || (now - parseInt(lastUpdate)) >= ONE_HOUR) {
+    const previousOrder = getFilteredAndSortedSongs();
+    previousOrder.forEach((s, idx) => {
+      s.lastRank = idx + 1;
+    });
+
     for (let song of songs) {
       await fetchRealStreamsForSong(song);
     }
@@ -196,7 +207,7 @@ function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
 
-// GESTIÓN DEL MENÚ CONTEXTUAL (TRES PUNTOS Y LONG PRESS)
+// GESTIÓN DEL MENÚ CONTEXTUAL
 function openContextMenu(id, event) {
   if (event) event.stopPropagation();
   currentContextMenuSongId = id;
@@ -224,7 +235,7 @@ document.getElementById('ctxDeleteBtn').onclick = () => {
   if (id) deleteSong(id);
 };
 
-// MODAL DE DETALLES CON TODOS LOS DATOS EXPLÍCITOS
+// MODAL DE DETALLES
 async function openDetailModal(id) {
   const song = songs.find(s => Number(s.id) === Number(id));
   if (!song) return;
@@ -238,7 +249,6 @@ async function openDetailModal(id) {
   document.getElementById('detailSongArtist').innerText = song.artist;
   document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams totales`;
   
-  // Rellenar datos explícitos
   document.getElementById('detailAlbum').innerText = song.album || 'Sin álbum';
   document.getElementById('detailType').innerText = song.type || 'Sencillo';
   document.getElementById('detailDate').innerText = formatDate(song.date);
@@ -371,7 +381,8 @@ async function saveSong(e) {
     date: document.getElementById('dateInput').value || '',
     cover: document.getElementById('coverInput').value || 'https://via.placeholder.com/300/181822/ffffff?text=Portada',
     link: document.getElementById('linkInput').value || '#',
-    history: existingSong ? existingSong.history : null
+    history: existingSong ? existingSong.history : null,
+    lastRank: existingSong ? existingSong.lastRank : null
   };
 
   initSongHistory(songData);
@@ -433,7 +444,8 @@ function importJSON(event) {
             date: s.date ? s.date.split('T')[0] : '',
             cover: s.cover || '',
             link: s.link || '#',
-            history: s.history || null
+            history: s.history || null,
+            lastRank: s.lastRank || null
           };
           initSongHistory(mapped);
           return mapped;
@@ -480,22 +492,38 @@ function renderSongs() {
     return;
   }
 
-  // RENDERIZADO ESTRICTO DE 3 RENGLONES: 1. Nombre, 2. Artistas, 3. Reproducciones
   container.className = 'playlist-view';
-  container.innerHTML = list.map((s, i) => `
-    <div class="playlist-row" data-id="${s.id}" onclick="openDetailModal('${s.id}')">
-      <div class="playlist-index">${i + 1}</div>
-      <img class="playlist-thumb" src="${s.cover}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-      <div class="playlist-info">
-        <div class="playlist-song-title">${s.title}</div>
-        <div class="playlist-song-artist">${s.artist}</div>
-        <div class="playlist-song-streams">${formatNumber(s.streams)}</div>
-      </div>
-      <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
-    </div>
-  `).join('');
+  container.innerHTML = list.map((s, i) => {
+    const currentRank = i + 1;
+    let trendHtml = '';
 
-  // Evento Long Press (Mantener presionado en celulares y PC) para abrir el menú contextual
+    // Calcular flecha de tendencia si cambió de posición respecto a la sincronización previa
+    if (s.lastRank) {
+      if (currentRank < s.lastRank) {
+        trendHtml = `<div class="trend-indicator trend-up" title="Subió de puesto"><i class="fa-solid fa-arrow-up"></i></div>`;
+      } else if (currentRank > s.lastRank) {
+        trendHtml = `<div class="trend-indicator trend-down" title="Bajó de puesto"><i class="fa-solid fa-arrow-down"></i></div>`;
+      }
+    }
+
+    return `
+      <div class="playlist-row" data-id="${s.id}" onclick="openDetailModal('${s.id}')">
+        <div class="playlist-rank-col">
+          <div class="playlist-index">${currentRank}</div>
+          ${trendHtml}
+        </div>
+        <img class="playlist-thumb" src="${s.cover}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
+        <div class="playlist-info">
+          <div class="playlist-song-title">${s.title}</div>
+          <div class="playlist-song-artist">${s.artist}</div>
+          <div class="playlist-song-streams">${formatNumber(s.streams)}</div>
+        </div>
+        <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+      </div>
+    `;
+  }).join('');
+
+  // Evento Long Press para el menú contextual
   document.querySelectorAll('.playlist-row').forEach(row => {
     const id = row.getAttribute('data-id');
     let pressTimer = null;
