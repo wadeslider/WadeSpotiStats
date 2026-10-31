@@ -327,9 +327,9 @@
       document.getElementById('itunesQuery').value = '';
       modal.style.display = 'flex';
 
-      if (id !== null && id !== undefined) {
+      if (id !== null && id !== '' && id !== undefined) {
         document.getElementById('modalTitle').innerText = 'Editar Canción';
-        const song = songs.find(s => s.id === Number(id));
+        const song = songs.find(s => Number(s.id) === Number(id));
         if (song) {
           document.getElementById('songId').value = song.id;
           document.getElementById('titleInput').value = song.title || '';
@@ -339,7 +339,9 @@
           document.getElementById('streamsInput').value = song.streams || 0;
           document.getElementById('dateInput').value = song.date || '';
           document.getElementById('coverInput').value = song.cover || '';
-          document.getElementById('linkInput').value = song.link && song.link !== '#' ? song.link : '';
+          document.getElementById('linkInput').value = (song.link && song.link !== '#') ? song.link : '';
+        } else {
+          console.warn("No se encontró la canción con ID:", id);
         }
       } else {
         document.getElementById('modalTitle').innerText = 'Agregar Canción';
@@ -403,9 +405,10 @@
 
     function saveSong(e) {
       e.preventDefault();
-      const id = document.getElementById('songId').value;
+      const idVal = document.getElementById('songId').value;
+      
       const songData = {
-        id: id ? Number(id) : Date.now(),
+        id: idVal ? Number(idVal) : Date.now(),
         title: document.getElementById('titleInput').value,
         artist: document.getElementById('artistInput').value || 'Kenia Os',
         album: document.getElementById('albumInput').value || 'Sin Álbum',
@@ -416,8 +419,8 @@
         link: document.getElementById('linkInput').value || '#'
       };
 
-      if (id !== "") {
-        const index = songs.findIndex(s => s.id === Number(id));
+      if (idVal !== "" && idVal !== null && idVal !== undefined) {
+        const index = songs.findIndex(s => Number(s.id) === Number(idVal));
         if (index !== -1) {
           songs[index] = songData;
         } else {
@@ -434,7 +437,7 @@
 
     function deleteSong(id) {
       if (confirm('¿Eliminar esta canción de tu lista?')) {
-        songs = songs.filter(s => s.id !== Number(id));
+        songs = songs.filter(s => Number(s.id) !== Number(id));
         saveToStorage();
         renderSongs();
       }
@@ -504,8 +507,8 @@
         container.innerHTML = list.map(s => `
           <div class="song-card">
             <div class="card-actions">
-              <button class="action-btn" onclick="openModal(${s.id})" title="Editar"><i class="fa-solid fa-pen"></i></button>
-              <button class="action-btn" onclick="deleteSong(${s.id})" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
+              <button class="action-btn edit-btn" data-id="${s.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+              <button class="action-btn delete-btn" data-id="${s.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
             </div>
             <div class="img-container">
               <img src="${s.cover}" alt="${s.title}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
@@ -534,8 +537,8 @@
               <div class="streams-text">${formatNumber(s.streams)}</div>
             </div>
             <div class="h-actions">
-              <button class="action-btn" onclick="openModal(${s.id})"><i class="fa-solid fa-pen"></i></button>
-              <button class="action-btn" onclick="deleteSong(${s.id})"><i class="fa-solid fa-trash"></i></button>
+              <button class="action-btn edit-btn" data-id="${s.id}"><i class="fa-solid fa-pen"></i></button>
+              <button class="action-btn delete-btn" data-id="${s.id}"><i class="fa-solid fa-trash"></i></button>
             </div>
           </div>
         `).join('');
@@ -569,8 +572,8 @@
                     <td style="color:var(--text-sub);">${s.album}</td>
                     <td><span class="streams-text">${formatNumber(s.streams)}</span></td>
                     <td>
-                      <button class="action-btn" onclick="openModal(${s.id})"><i class="fa-solid fa-pen"></i></button>
-                      <button class="action-btn" onclick="deleteSong(${s.id})"><i class="fa-solid fa-trash"></i></button>
+                      <button class="action-btn edit-btn" data-id="${s.id}"><i class="fa-solid fa-pen"></i></button>
+                      <button class="action-btn delete-btn" data-id="${s.id}"><i class="fa-solid fa-trash"></i></button>
                     </td>
                   </tr>
                 `).join('')}
@@ -579,6 +582,14 @@
           </div>
         `;
       }
+
+      // Asignar eventos seguros por dataset para evitar fallos en móviles
+      document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.onclick = () => openModal(btn.getAttribute('data-id'));
+      });
+      document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.onclick = () => deleteSong(btn.getAttribute('data-id'));
+      });
     }
 
     updateStats();
