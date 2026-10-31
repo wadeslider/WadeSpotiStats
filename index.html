@@ -58,18 +58,11 @@
         <option value="alpha-asc">A - Z</option>
         <option value="alpha-desc">Z - A</option>
       </select>
-
-      <div class="view-toggles">
-        <button class="view-btn" id="btnGrid" onclick="setView('grid')" title="Cuadrícula"><i class="fa-solid fa-border-all"></i></button>
-        <button class="view-btn" id="btnHorizontal" onclick="setView('horizontal')" title="Tarjetas Acostadas"><i class="fa-solid fa-list-ul"></i></button>
-        <button class="view-btn" id="btnList" onclick="setView('list')" title="Lista Tabla"><i class="fa-solid fa-table-list"></i></button>
-        <button class="view-btn active" id="btnPlaylist" onclick="setView('playlist')" title="Estilo Playlist Spotify"><i class="fa-brands fa-spotify"></i></button>
-      </div>
     </div>
   </div>
 
   <div class="container">
-    <div id="songsContainer"></div>
+    <div id="songsContainer" class="playlist-view"></div>
   </div>
 
   <!-- MODAL DE EDICIÓN Y CREACIÓN CON API ITUNES -->
@@ -144,7 +137,16 @@
     </div>
   </div>
 
-  <!-- MODAL INTERACTIVO DE DETALLES Y GRÁFICA HORARIA (MÁXIMO 5 HORAS) -->
+  <!-- MODAL DE MENÚ CONTEXTUAL (TRES PUNTOS / LONG PRESS) -->
+  <div class="modal-overlay" id="contextMenuOverlay" onclick="closeContextMenu()">
+    <div class="context-menu-box" onclick="event.stopPropagation()">
+      <div id="contextMenuTitle" style="font-weight:bold; font-size:0.95rem; margin-bottom:12px; color:white; border-bottom:1px solid var(--border-color); padding-bottom:8px;">Opciones</div>
+      <button class="context-btn" id="ctxEditBtn"><i class="fa-solid fa-pen"></i> Editar canción</button>
+      <button class="context-btn" id="ctxDeleteBtn" style="color:#ff4757;"><i class="fa-solid fa-trash"></i> Eliminar canción</button>
+    </div>
+  </div>
+
+  <!-- MODAL INTERACTIVO DE DETALLES Y GRÁFICA (MÁXIMO 5 HORAS) -->
   <div class="modal-overlay" id="detailModalOverlay">
     <div class="modal" style="max-width: 600px;">
       <div class="modal-header">
