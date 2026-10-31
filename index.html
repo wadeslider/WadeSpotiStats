@@ -327,18 +327,20 @@
       document.getElementById('itunesQuery').value = '';
       modal.style.display = 'flex';
 
-      if (id !== null) {
+      if (id !== null && id !== undefined) {
         document.getElementById('modalTitle').innerText = 'Editar Canción';
-        const song = songs.find(s => s.id === id);
-        document.getElementById('songId').value = song.id;
-        document.getElementById('titleInput').value = song.title;
-        document.getElementById('artistInput').value = song.artist || 'Kenia Os';
-        document.getElementById('albumInput').value = song.album;
-        document.getElementById('typeInput').value = song.type;
-        document.getElementById('streamsInput').value = song.streams;
-        document.getElementById('dateInput').value = song.date;
-        document.getElementById('coverInput').value = song.cover;
-        document.getElementById('linkInput').value = song.link || '';
+        const song = songs.find(s => s.id === Number(id));
+        if (song) {
+          document.getElementById('songId').value = song.id;
+          document.getElementById('titleInput').value = song.title || '';
+          document.getElementById('artistInput').value = song.artist || 'Kenia Os';
+          document.getElementById('albumInput').value = song.album || '';
+          document.getElementById('typeInput').value = song.type || 'Sencillo';
+          document.getElementById('streamsInput').value = song.streams || 0;
+          document.getElementById('dateInput').value = song.date || '';
+          document.getElementById('coverInput').value = song.cover || '';
+          document.getElementById('linkInput').value = song.link && song.link !== '#' ? song.link : '';
+        }
       } else {
         document.getElementById('modalTitle').innerText = 'Agregar Canción';
         form.reset();
@@ -403,7 +405,7 @@
       e.preventDefault();
       const id = document.getElementById('songId').value;
       const songData = {
-        id: id ? parseInt(id) : Date.now(),
+        id: id ? Number(id) : Date.now(),
         title: document.getElementById('titleInput').value,
         artist: document.getElementById('artistInput').value || 'Kenia Os',
         album: document.getElementById('albumInput').value || 'Sin Álbum',
@@ -414,9 +416,13 @@
         link: document.getElementById('linkInput').value || '#'
       };
 
-      if (id) {
-        const index = songs.findIndex(s => s.id === parseInt(id));
-        songs[index] = songData;
+      if (id !== "") {
+        const index = songs.findIndex(s => s.id === Number(id));
+        if (index !== -1) {
+          songs[index] = songData;
+        } else {
+          songs.push(songData);
+        }
       } else {
         songs.push(songData);
       }
@@ -428,7 +434,7 @@
 
     function deleteSong(id) {
       if (confirm('¿Eliminar esta canción de tu lista?')) {
-        songs = songs.filter(s => s.id !== id);
+        songs = songs.filter(s => s.id !== Number(id));
         saveToStorage();
         renderSongs();
       }
