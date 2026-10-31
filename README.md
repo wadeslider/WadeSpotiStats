@@ -5,7 +5,7 @@ Aplicación estática multipágina para organizar canciones, artistas y playlist
 ## Estructura
 - `index.html` + `public/css/index.css` + `public/js/index.js`: dashboard.
 - `artistas.html` + `public/css/artistas.css` + `public/js/artistas.js`: artistas.
-- `track.html` + `public/css/track.css` + `public/js/track.js`: canciones, búsqueda iTunes y consulta MyStreamCount.
+- `track.html` + `public/css/track.css` + `public/js/track.js`: canciones, búsqueda iTunes y consulta MyStreamCount y sincronización automática diaria.
 - `playlists.html` + `public/css/playlists.css` + `public/js/playlists.js`: playlists manuales e inteligentes.
 - `configuracion.html` + `public/css/configuracion.css` + `public/js/configuracion.js`: backups y mantenimiento.
 - `public/css/core.css` y `public/js/core.js`: estilos y datos compartidos.
@@ -22,6 +22,8 @@ Los datos viven en `localStorage` del navegador. Exporta backups JSON con regula
 ## Integraciones
 - iTunes Search API: búsqueda de metadatos vía JSONP.
 - MyStreamCount: lectura del HTML público a través de AllOrigins. Depende de la disponibilidad y estructura del sitio y del proxy; puede dejar de funcionar si cambian.
+- Sincronización automática: al guardar una canción nueva o editada se consulta inmediatamente. La biblioteca completa se revisa diariamente a las 9:00 a. m. según la hora local del dispositivo. Como GitHub Pages es estático, la revisión de las 9:00 se ejecuta si la app está abierta a esa hora o cuando se vuelve a abrir después. No hay tareas en segundo plano con la web cerrada.
+- No existe botón manual de sincronización: el proceso es automático en el dashboard, canciones y configuración. Si una consulta falla, se conserva el último conteo válido.
 - Spotify Web API no se usa para streams, porque no proporciona el contador público de reproducciones por track.
 
 ## Migración
