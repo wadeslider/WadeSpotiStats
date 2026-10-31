@@ -29,7 +29,7 @@ function extractSpotifyTrackId(url) {
   return match ? match[1] : null;
 }
 
-// CONSULTA DE REPRODUCCIONES MEJORADA Y TOLERANTE A FALLOS
+// CONSULTA DE REPRODUCCIONES DESDE MYSTREAMCOUNT CON TOLERANCIA A FALLOS
 async function fetchRealStreamsForSong(song) {
   try {
     const trackId = extractSpotifyTrackId(song.link);
@@ -91,7 +91,6 @@ async function manualSyncAllSongs() {
   for (let song of songs) {
     const success = await fetchRealStreamsForSong(song);
     if (!success) {
-      // Solo reportar si de plano el enlace no tiene formato de track válido
       const trackId = extractSpotifyTrackId(song.link);
       if (!trackId) {
         failedSongs.push(`• ${song.title} (Enlace de Spotify inválido)`);
@@ -481,7 +480,7 @@ function renderSongs() {
     return;
   }
 
-  // RENDERIZADO EXCLUSIVO VISTA PLAYLIST CON 3 LÍNEAS EXACTAS
+  // RENDERIZADO ESTRICTO DE 3 RENGLONES: 1. Nombre, 2. Artistas, 3. Reproducciones
   container.className = 'playlist-view';
   container.innerHTML = list.map((s, i) => `
     <div class="playlist-row" data-id="${s.id}" onclick="openDetailModal('${s.id}')">
@@ -490,10 +489,7 @@ function renderSongs() {
       <div class="playlist-info">
         <div class="playlist-song-title">${s.title}</div>
         <div class="playlist-song-artist">${s.artist}</div>
-        <div class="playlist-song-meta">${s.album || 'Álbum'} • ${s.type}</div>
-      </div>
-      <div class="playlist-streams-box">
-        <span class="streams-text">${formatNumber(s.streams)}</span>
+        <div class="playlist-song-streams">${formatNumber(s.streams)}</div>
       </div>
       <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
     </div>
