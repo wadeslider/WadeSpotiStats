@@ -207,7 +207,7 @@ function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
 
-// GESTIÓN DEL MENÚ CONTEXTUAL
+// GESTIÓN DEL MENÚ CONTEXTUAL (TRES PUNTOS / LONG PRESS)
 function openContextMenu(id, event) {
   if (event) event.stopPropagation();
   currentContextMenuSongId = id;
@@ -311,44 +311,40 @@ function closeDetailModal() {
   }
 }
 
-// BÚSQUEDA EXACTA POR CÓDIGO (EXTRAE ID DE APPLE MUSIC)
+// BÚSQUEDA DE ITUNES CON EXTRACCIÓN DE ID EXACTO (CÓDIGO ORIGINAL QUE SÍ FUNCIONABA)
 function searchITunes() {
-  let rawQuery = document.getElementById('itunesQuery').value.trim();
-  if (!rawQuery) return;
-
+  let query = document.getElementById('itunesQuery').value.trim();
+  if (!query) return;
   const resultsDiv = document.getElementById('itunesResults');
-  resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando canción exacta en Apple Music...</p>';
+  resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
 
   const oldScript = document.getElementById('itunesJsonp');
   if (oldScript) oldScript.remove();
 
   let requestUrl = '';
 
-  // Extraer el código específico de pista (?i=ID o &i=ID) del enlace de Apple Music
-  const matchParamId = rawQuery.match(/[?&]i=(\d+)/);
-  if (matchParamId && matchParamId[1]) {
-    const trackId = matchParamId[1];
-    // Usamos el endpoint oficial lookup para buscar directo por el código exacto de la pista
-    requestUrl = `https://itunes.apple.com/lookup?id=${trackId}&country=mx&callback=handleITunesResponse`;
-  } else {
-    // Si no tiene código i=, buscamos extrayendo el slug o por texto normal
-    let searchTerm = rawQuery;
-    if (rawQuery.includes('music.apple.com')) {
-      try {
-        const urlObj = new URL(rawQuery);
-        const pathSegments = urlObj.pathname.split('/').filter(Boolean);
-        if (pathSegments.length > 0) {
-          let lastSegment = pathSegments[pathSegments.length - 1];
-          if (lastSegment === 'album' || lastSegment === 'song') {
-            lastSegment = pathSegments[pathSegments.length - 2];
-          }
-          searchTerm = lastSegment.replace(/-/g, ' ');
+  if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
+    let matchId = query.match(/\/id(\d+)/) || query.match(/i=(\d+)/);
+    
+    if (!matchId) {
+      const cleanPath = query.split('?')[0];
+      const segments = cleanPath.split('/').filter(Boolean);
+      for (let i = segments.length - 1; i >= 0; i--) {
+        if (/^\d{5,}$/.test(segments[i])) {
+          matchId = [null, segments[i]];
+          break;
         }
-      } catch (e) {
-        searchTerm = rawQuery;
       }
     }
-    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(searchTerm)}&entity=song&limit=5&country=mx&callback=handleITunesResponse`;
+
+    if (matchId && matchId[1]) {
+      requestUrl = `https://itunes.apple.com/lookup?id=${matchId[1]}&callback=handleITunesResponse`;
+    } else {
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace. Prueba buscando por nombre.</p>';
+      return;
+    }
+  } else {
+    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
   }
 
   const script = document.createElement('script');
@@ -361,33 +357,29 @@ function handleITunesResponse(data) {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '';
   if (!data.results || data.results.length === 0) {
-    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">No se encontró la canción con ese enlace. Intenta escribir el nombre.</p>';
+    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre exacto.</p>';
     return;
   }
 
   data.results.forEach(item => {
-    // Asegurarnos de que el resultado sea una canción válida (track)
-    if (item.wrapperType && item.wrapperType !== 'track' && item.kind !== 'song') return;
-
     const coverHd = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '1000x1000bb') : '';
     const releaseDate = item.releaseDate ? item.releaseDate.split('T')[0] : '';
-
     const el = document.createElement('div');
     el.className = 'itunes-item';
     el.innerHTML = `
       <img src="${item.artworkUrl60 || 'https://via.placeholder.com/60'}" alt="">
       <div class="itunes-item-info">
-        <div class="itunes-item-title">${item.trackName || item.collectionName}</div>
+        <div class="itunes-item-title">${item.trackName}</div>
         <div class="itunes-item-sub">${item.artistName} • ${item.collectionName || 'Sencillo'}</div>
       </div>
     `;
     el.onclick = () => {
-      document.getElementById('titleInput').value = item.trackName || '';
-      document.getElementById('artistInput').value = item.artistName || 'Kenia Os';
+      document.getElementById('titleInput').value = item.trackName;
+      document.getElementById('artistInput').value = item.artistName;
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados con éxito! (No olvides poner tu enlace de Spotify)</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Agrega tu link de Spotify)</p>';
     };
     resultsDiv.appendChild(el);
   });
@@ -525,6 +517,7 @@ function renderSongs() {
     return;
   }
 
+  // RENDERIZADO ESTRICTO DE 3 LÍNEAS (NOMBRE, ARTISTA, REPRODUCCIONES)
   container.className = 'playlist-view';
   container.innerHTML = list.map((s, i) => {
     const currentRank = i + 1;
