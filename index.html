@@ -18,6 +18,8 @@
     <div class="top-bar">
       <h1><i class="fa-brands fa-spotify"></i> WadeSpotiStats</h1>
       <div class="header-actions">
+        <!-- Botón de Sincronización Manual -->
+        <button class="btn-secondary-btn" id="syncBtn" onclick="manualSyncAllSongs()"><i class="fa-solid fa-rotate"></i> Sincronizar</button>
         <button class="btn-secondary-btn" onclick="exportJSON()"><i class="fa-solid fa-download"></i> Backup</button>
         <button class="btn-secondary-btn" onclick="document.getElementById('fileInput').click()"><i class="fa-solid fa-upload"></i> Cargar</button>
         <input type="file" id="fileInput" accept=".json,application/json" onchange="importJSON(event)">
