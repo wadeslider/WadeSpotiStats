@@ -1,37 +1,28 @@
-# 🎵 WadeSpotiStats - Kenia Os
+# WadeSpotiStats 2.0
 
-**WadeSpotiStats** es una aplicación web minimalista y moderna diseñada para el seguimiento preciso en tiempo real de las reproducciones (streams) de canciones en Spotify, inspirada estéticamente en la interfaz limpia de una playlist oficial de la plataforma. 
+Aplicación estática multipágina para organizar canciones, artistas y playlists. Diseñada para GitHub Pages, sin backend ni frameworks.
 
-Este proyecto está optimizado para funcionar mediante almacenamiento local (`localStorage`), permitiendo sincronizar contadores reales, visualizar el comportamiento histórico en gráficas horarias y administrar catálogos musicales de manera eficiente.
+## Estructura
+- `index.html` + `public/css/index.css` + `public/js/index.js`: dashboard.
+- `artistas.html` + `public/css/artistas.css` + `public/js/artistas.js`: artistas.
+- `track.html` + `public/css/track.css` + `public/js/track.js`: canciones, búsqueda iTunes y consulta MyStreamCount.
+- `playlists.html` + `public/css/playlists.css` + `public/js/playlists.js`: playlists manuales e inteligentes.
+- `configuracion.html` + `public/css/configuracion.css` + `public/js/configuracion.js`: backups y mantenimiento.
+- `public/css/core.css` y `public/js/core.js`: estilos y datos compartidos.
 
----
+## Publicar en GitHub Pages
+1. Sube el contenido de esta carpeta a la raíz de tu repositorio (donde está `index.html`).
+2. En Settings → Pages, selecciona Deploy from a branch.
+3. Selecciona la rama y carpeta `/ (root)`.
+4. Abre la URL publicada. Usa rutas relativas, no rutas absolutas desde `/`.
 
-## ✨ Características Principales
+## Datos y privacidad
+Los datos viven en `localStorage` del navegador. Exporta backups JSON con regularidad. Importar un backup reemplaza los datos actuales, así que exporta primero si necesitas conservarlos.
 
-* **🎨 Interfaz Estilo Spotify:** Vista de lista vertical con carátulas cuadradas alineadas, tipografías limpias y contadores de reproducciones en color verde característico.
-* **🔄 Sincronización en Vivo:** Conexión directa mediante ID de pista para consultar contadores reales y públicos de reproducciones.
-* **⚠️ Detección de Enlaces Erróneos:** Al sincronizar, la aplicación identifica automáticamente las canciones con enlaces de Spotify inválidos o rotos y genera un reporte de atención.
-* **📈 Historial Deslizante (Base de Datos Secundaria):** Sistema optimizado de registro de evolución horaria limitado estrictamente a un máximo de las últimas **5 horas**, borrando automáticamente los registros más antiguos para evitar saturar el almacenamiento.
-* **✨ Autocompletado con iTunes:** Sección integrada para buscar y rellenar automáticamente metadatos (título, artista, álbum, fecha de lanzamiento y portadas en HD) utilizando la API de iTunes.
-* **📱 Menú Contextual Táctil (Long Press y 3 Puntos):** Permite editar o eliminar canciones fácilmente tanto en dispositivos móviles (manteniendo presionado el renglón) como en PC (mediante el botón de opciones `⋮`).
-* **💾 Respaldo y Carga de Datos:** Funciones nativas para exportar todo tu catálogo a un archivo JSON (`Backup`) y cargarlo de vuelta cuando lo necesites.
+## Integraciones
+- iTunes Search API: búsqueda de metadatos vía JSONP.
+- MyStreamCount: lectura del HTML público a través de AllOrigins. Depende de la disponibilidad y estructura del sitio y del proxy; puede dejar de funcionar si cambian.
+- Spotify Web API no se usa para streams, porque no proporciona el contador público de reproducciones por track.
 
----
-
-## 🛠️ Tecnologías Utilizadas
-
-* **HTML5 / CSS3:** Estructura semántica y diseño visual responsivo inspirado en la interfaz de Spotify.
-* **JavaScript (Vanilla ES6+):** Lógica del cliente, manipulación del DOM, control de eventos táctiles/clics y peticiones asíncronas (`async/await`).
-* **Chart.js:** Librería ligera para renderizar las gráficas de evolución temporal de streams.
-* **FontAwesome:** Iconografía moderna para botones, menús y controles.
-* **LocalStorage:** Base de datos del navegador para la persistencia local de canciones e historiales.
-
----
-
-## 🚀 Guía de Instalación y Uso
-
-Al tratarse de una aplicación web estática basada en cliente, no requiere servidores complejos de backend para funcionar:
-
-1. Clona este repositorio o descarga los archivos fuente en tu equipo:
-   ```bash
-   git clone [https://github.com/tu-usuario/WadeSpotiStats.git](https://github.com/tu-usuario/WadeSpotiStats.git)
+## Migración
+Al iniciar, `core.js` lee la clave anterior `wadespotistats_songs`, crea IDs para canciones antiguas y genera perfiles de artista a partir del campo `artist` cuando faltan `artistIds`. No borra la clave anterior.
