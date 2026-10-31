@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>WadeSpotiStats - Kenia Os</title>
-  <!-- CONFIGURACIÓN PWA PARA INSTALAR COMO APP -->
   <link rel="manifest" href="data:application/manifest+json;charset=utf-8,%7B%22name%22%3A%22WadeSpotiStats%22%2C%22short_name%22%3A%22SpotiStats%22%2C%22start_url%22%3A%22.%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230b0b10%22%2C%22theme_color%22%3A%22%23ff2d75%22%2C%22icons%22%3A%5B%7B%22src%22%3A%22https%3A%2F%2Fcdn-icons-png.flaticon.com%2F512%2F2111%2F2111624.png%22%2C%22sizes%22%3A%22512x512%22%2C%22type%22%3A%22image%2Fpng%22%7D%5D%7D">
   <meta name="theme-color" content="#ff2d75">
   
@@ -102,7 +101,7 @@
     .card-artist { font-size: 0.78rem; color: var(--text-sub); margin-bottom: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-info { font-size: 0.75rem; color: var(--text-sub); display: flex; justify-content: space-between; align-items: center; }
 
-    .card-actions { position: absolute; top: 16px; right: 16px; display: flex; gap: 4px; background: rgba(0,0,0,0.75); padding: 4px; border-radius: 20px; }
+    .card-actions { position: absolute; top: 12px; right: 12px; display: flex; gap: 4px; background: rgba(0,0,0,0.8); padding: 4px; border-radius: 20px; z-index: 10; }
     .action-btn { background: none; border: none; color: white; width: 26px; height: 26px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.75rem; }
     .action-btn:hover { background: rgba(255,255,255,0.25); }
 
@@ -223,7 +222,7 @@
 
       <!-- SECCIÓN API ITUNES -->
       <div class="itunes-search-section">
-        <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar desde iTunes API</label>
+        <label style="font-size:0.78rem; color: var(--accent); font-weight:bold;">✨ Auto-completar datos desde iTunes</label>
         <div class="itunes-search-box">
           <input type="text" id="itunesQuery" placeholder="Ej: Por Siempre Kenia Os">
           <button type="button" class="btn-main" style="padding: 8px 12px; font-size:0.75rem;" onclick="searchITunes()"><i class="fa-solid fa-magnifying-glass"></i> Buscar</button>
@@ -274,8 +273,8 @@
         </div>
 
         <div class="form-group">
-          <label>URL de Enlace (Apple / Spotify)</label>
-          <input type="url" id="linkInput" placeholder="https://...">
+          <label>URL de Enlace de Spotify *</label>
+          <input type="url" id="linkInput" placeholder="https://open.spotify.com/track/...">
         </div>
 
         <div class="modal-footer">
@@ -339,12 +338,13 @@
         document.getElementById('streamsInput').value = song.streams;
         document.getElementById('dateInput').value = song.date;
         document.getElementById('coverInput').value = song.cover;
-        document.getElementById('linkInput').value = song.link;
+        document.getElementById('linkInput').value = song.link || '';
       } else {
         document.getElementById('modalTitle').innerText = 'Agregar Canción';
         form.reset();
         document.getElementById('songId').value = '';
         document.getElementById('artistInput').value = 'Kenia Os';
+        document.getElementById('linkInput').value = '';
       }
     }
 
@@ -358,7 +358,11 @@
       const resultsDiv = document.getElementById('itunesResults');
       resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
 
+      const oldScript = document.getElementById('itunesJsonp');
+      if (oldScript) oldScript.remove();
+
       const script = document.createElement('script');
+      script.id = 'itunesJsonp';
       script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
       document.body.appendChild(script);
     }
@@ -388,9 +392,8 @@
           document.getElementById('artistInput').value = item.artistName;
           document.getElementById('albumInput').value = item.collectionName || '';
           document.getElementById('coverInput').value = coverHd;
-          document.getElementById('linkInput').value = item.trackViewUrl || '';
           if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-          resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados al formulario!</p>';
+          resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Agrega tu link de Spotify)</p>';
         };
         resultsDiv.appendChild(el);
       });
