@@ -29,13 +29,11 @@ function extractSpotifyTrackId(url) {
   return match ? match[1] : null;
 }
 
-// CONSULTA DE REPRODUCCIONES DESDE MYSTREAMCOUNT CON DETECCIÓN DE ERRORES
+// CONSULTA DE REPRODUCCIONES MEJORADA Y TOLERANTE A FALLOS
 async function fetchRealStreamsForSong(song) {
   try {
     const trackId = extractSpotifyTrackId(song.link);
-    if (!trackId) {
-      return { success: false, reason: 'Enlace de Spotify inválido o sin ID' };
-    }
+    if (!trackId) return false;
 
     const targetUrl = `https://www.mystreamcount.com/track/${trackId}`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
@@ -73,17 +71,17 @@ async function fetchRealStreamsForSong(song) {
               song.history.shift();
             }
           }
-          return { success: true };
+          return true;
         }
       }
     }
-    return { success: false, reason: 'No se pudo conectar o extraer de MyStreamCount' };
+    return false;
   } catch (error) {
-    return { success: false, reason: 'Error de red' };
+    return false;
   }
 }
 
-// SINCRONIZACIÓN MANUAL CON REPORTE DE ERRORES
+// SINCRONIZACIÓN MANUAL CON REPORTE REAL DE ENLACES ROTOS
 async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
@@ -91,9 +89,13 @@ async function manualSyncAllSongs() {
   let failedSongs = [];
 
   for (let song of songs) {
-    const result = await fetchRealStreamsForSong(song);
-    if (!result.success) {
-      failedSongs.push(`• ${song.title} (${song.artist})`);
+    const success = await fetchRealStreamsForSong(song);
+    if (!success) {
+      // Solo reportar si de plano el enlace no tiene formato de track válido
+      const trackId = extractSpotifyTrackId(song.link);
+      if (!trackId) {
+        failedSongs.push(`• ${song.title} (Enlace de Spotify inválido)`);
+      }
     }
   }
 
@@ -103,9 +105,9 @@ async function manualSyncAllSongs() {
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
 
   if (failedSongs.length > 0) {
-    alert(`Sincronización finalizada.\n\n⚠️ Las siguientes canciones requieren atención porque su enlace de Spotify tiene errores o no se pudo actualizar:\n\n${failedSongs.join('\n')}`);
+    alert(`Sincronización finalizada.\n\n⚠️ Las siguientes canciones tienen enlaces incorrectos y necesitan revisión:\n\n${failedSongs.join('\n')}`);
   } else {
-    alert('¡Sincronización completada con éxito para todas las canciones!');
+    alert('¡Sincronización completada con éxito!');
   }
 }
 
@@ -133,11 +135,11 @@ function formatNumber(num) {
 }
 
 function formatDate(dateStr) {
-  if (!dateStr) return '';
+  if (!dateStr) return 'Desconocida';
   const cleanDate = dateStr.split('T')[0];
   const parts = cleanDate.split('-');
   if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
   }
   return cleanDate;
 }
@@ -223,6 +225,7 @@ document.getElementById('ctxDeleteBtn').onclick = () => {
   if (id) deleteSong(id);
 };
 
+// MODAL DE DETALLES CON TODOS LOS DATOS EXPLÍCITOS
 async function openDetailModal(id) {
   const song = songs.find(s => Number(s.id) === Number(id));
   if (!song) return;
@@ -233,8 +236,15 @@ async function openDetailModal(id) {
 
   document.getElementById('detailCover').src = song.cover || 'https://via.placeholder.com/300/181822/ffffff?text=Portada';
   document.getElementById('detailSongTitle').innerText = song.title;
-  document.getElementById('detailSongArtist').innerText = `${song.artist} • ${song.album || 'Álbum'} (${song.type})`;
-  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams reales`;
+  document.getElementById('detailSongArtist').innerText = song.artist;
+  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams totales`;
+  
+  // Rellenar datos explícitos
+  document.getElementById('detailAlbum').innerText = song.album || 'Sin álbum';
+  document.getElementById('detailType').innerText = song.type || 'Sencillo';
+  document.getElementById('detailDate').innerText = formatDate(song.date);
+  document.getElementById('detailHistoryCount').innerText = `${song.history.length} / 5 registros`;
+
   document.getElementById('detailSpotifyLink').href = (song.link && song.link !== '#') ? song.link : 'https://open.spotify.com';
 
   document.getElementById('detailModalOverlay').style.display = 'flex';
@@ -252,7 +262,7 @@ async function openDetailModal(id) {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Streams (Últimas 5h)',
+        label: 'Streams',
         data: dataPoints,
         borderColor: '#00a8ff',
         backgroundColor: 'rgba(0, 168, 255, 0.15)',
@@ -471,27 +481,23 @@ function renderSongs() {
     return;
   }
 
-  // RENDERIZADO EXCLUSIVO VISTA PLAYLIST CON TRES PUNTOS Y LONG PRESS
+  // RENDERIZADO EXCLUSIVO VISTA PLAYLIST CON 3 LÍNEAS EXACTAS
   container.className = 'playlist-view';
   container.innerHTML = list.map((s, i) => `
-    <div class="playlist-row" data-id="${s.id}">
+    <div class="playlist-row" data-id="${s.id}" onclick="openDetailModal('${s.id}')">
       <div class="playlist-index">${i + 1}</div>
-      <img class="playlist-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver gráfica de evolución" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-      <div class="playlist-info img-detail-trigger" data-id="${s.id}">
-        <div class="playlist-song-title"><a href="${s.link}" target="_blank" onclick="event.stopPropagation()">${s.title}</a></div>
-        <div class="playlist-song-artist">${s.artist} • ${s.album || 'Álbum'}</div>
+      <img class="playlist-thumb" src="${s.cover}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
+      <div class="playlist-info">
+        <div class="playlist-song-title">${s.title}</div>
+        <div class="playlist-song-artist">${s.artist}</div>
+        <div class="playlist-song-meta">${s.album || 'Álbum'} • ${s.type}</div>
       </div>
-      <div class="playlist-streams-box img-detail-trigger" data-id="${s.id}">
+      <div class="playlist-streams-box">
         <span class="streams-text">${formatNumber(s.streams)}</span>
       </div>
       <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
     </div>
   `).join('');
-
-  // Eventos de clic en portada/datos para abrir gráfica
-  document.querySelectorAll('.img-detail-trigger').forEach(el => {
-    el.onclick = () => openDetailModal(el.getAttribute('data-id'));
-  });
 
   // Evento Long Press (Mantener presionado en celulares y PC) para abrir el menú contextual
   document.querySelectorAll('.playlist-row').forEach(row => {
@@ -499,11 +505,10 @@ function renderSongs() {
     let pressTimer = null;
 
     const startPress = (e) => {
-      // Si hacen clic en el enlace o en el botón de opciones, ignorar long press
-      if (e.target.tagName === 'A' || e.target.closest('.options-btn')) return;
+      if (e.target.closest('.options-btn')) return;
       pressTimer = setTimeout(() => {
         openContextMenu(id);
-      }, 600); // 600 milisegundos de presión
+      }, 600);
     };
 
     const cancelPress = () => {
