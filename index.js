@@ -187,13 +187,26 @@ function importJSON(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (Array.isArray(imported)) {
-        songs = imported;
+        // Aseguramos formato correcto y IDs limpios
+        songs = imported.map(s => ({
+          id: s.id ? Number(s.id) : Date.now() + Math.random(),
+          title: s.title || 'Sin Título',
+          artist: s.artist || 'Kenia Os',
+          album: s.album || 'Sin Álbum',
+          type: s.type || 'Sencillo',
+          streams: Number(s.streams) || 0,
+          date: s.date ? s.date.split('T')[0] : '',
+          cover: s.cover || '',
+          link: s.link || '#'
+        }));
         saveToStorage();
         renderSongs();
-        alert('¡Datos cargados con éxito!');
+        alert('¡Datos y respaldo cargados con éxito!');
+      } else {
+        alert('El archivo JSON no tiene el formato de lista correcto.');
       }
     } catch (err) {
-      alert('Error al leer el archivo JSON.');
+      alert('Error al leer o parsear el archivo JSON.');
     }
   };
   reader.readAsText(file);
@@ -224,7 +237,7 @@ function renderSongs() {
   const list = getFilteredAndSortedSongs();
 
   if (list.length === 0) {
-    container.innerHTML = `<p style="text-align:center; color: var(--text-sub); padding: 50px 0;">No hay canciones en tu catálogo.<br>Presiona "+ Nueva" para agregar la primera.</p>`;
+    container.innerHTML = `<p style="text-align:center; color: var(--text-sub); padding: 50px 0;">No hay canciones en tu catálogo.<br>Presiona "+ Nueva" para agregar la primera o carga un backup.</p>`;
     return;
   }
 
