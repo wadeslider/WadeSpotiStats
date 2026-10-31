@@ -83,7 +83,7 @@ function closeModal() {
 }
 
 function searchITunes() {
-  const query = document.getElementById('itunesQuery').value;
+  let query = document.getElementById('itunesQuery').value.trim();
   if (!query) return;
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Buscando en iTunes...</p>';
@@ -91,9 +91,24 @@ function searchITunes() {
   const oldScript = document.getElementById('itunesJsonp');
   if (oldScript) oldScript.remove();
 
+  let requestUrl = '';
+
+  // Detectar si ingresaron un enlace de iTunes / Apple Music (ej. i=12345678 o /id12345678)
+  if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
+    const matchId = query.match(/i=(\d+)/) || query.match(/\/id(\d+)/);
+    if (matchId && matchId[1]) {
+      requestUrl = `https://itunes.apple.com/lookup?id=${matchId[1]}&callback=handleITunesResponse`;
+    } else {
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace.</p>';
+      return;
+    }
+  } else {
+    requestUrl = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
+  }
+
   const script = document.createElement('script');
   script.id = 'itunesJsonp';
-  script.src = `https://itunes.apple.com/search?term=${encodeURIComponent(query)}&entity=song&limit=5&callback=handleITunesResponse`;
+  script.src = requestUrl;
   document.body.appendChild(script);
 }
 
@@ -111,7 +126,7 @@ function handleITunesResponse(data) {
     const el = document.createElement('div');
     el.className = 'itunes-item';
     el.innerHTML = `
-      <img src="${item.artworkUrl60}" alt="">
+      <img src="${item.artworkUrl60 || 'https://via.placeholder.com/60'}" alt="">
       <div class="itunes-item-info">
         <div class="itunes-item-title">${item.trackName}</div>
         <div class="itunes-item-sub">${item.artistName} • ${item.collectionName || 'Sencillo'}</div>
@@ -187,7 +202,6 @@ function importJSON(event) {
     try {
       const imported = JSON.parse(e.target.result);
       if (Array.isArray(imported)) {
-        // Aseguramos formato correcto y IDs limpios
         songs = imported.map(s => ({
           id: s.id ? Number(s.id) : Date.now() + Math.random(),
           title: s.title || 'Sin Título',
