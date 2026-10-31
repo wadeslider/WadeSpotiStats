@@ -86,7 +86,6 @@ async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
 
-  // Guardar posiciones anteriores antes de actualizar
   const previousOrder = getFilteredAndSortedSongs();
   previousOrder.forEach((s, idx) => {
     s.lastRank = idx + 1;
@@ -167,6 +166,7 @@ function updateStats() {
   }
 }
 
+// ABRIR MODAL (CREAR O EDITAR)
 function openModal(id = null) {
   const modal = document.getElementById('modalOverlay');
   const form = document.getElementById('songForm');
@@ -235,7 +235,7 @@ document.getElementById('ctxDeleteBtn').onclick = () => {
   if (id) deleteSong(id);
 };
 
-// MODAL DE DETALLES
+// MODAL DE DETALLES Y GRÁFICA
 async function openDetailModal(id) {
   const song = songs.find(s => Number(s.id) === Number(id));
   if (!song) return;
@@ -311,6 +311,7 @@ function closeDetailModal() {
   }
 }
 
+// BÚSQUEDA Y AUTOCOMPLETADO CON ITUNES (JSONP)
 function searchITunes() {
   let query = document.getElementById('itunesQuery').value.trim();
   if (!query) return;
@@ -361,6 +362,7 @@ function handleITunesResponse(data) {
   });
 }
 
+// GUARDAR CANCIÓN
 async function saveSong(e) {
   e.preventDefault();
   const idVal = document.getElementById('songId').value;
@@ -497,7 +499,6 @@ function renderSongs() {
     const currentRank = i + 1;
     let trendHtml = '';
 
-    // Calcular flecha de tendencia si cambió de posición respecto a la sincronización previa
     if (s.lastRank) {
       if (currentRank < s.lastRank) {
         trendHtml = `<div class="trend-indicator trend-up" title="Subió de puesto"><i class="fa-solid fa-arrow-up"></i></div>`;
