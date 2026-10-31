@@ -93,13 +93,24 @@ function searchITunes() {
 
   let requestUrl = '';
 
-  // Detectar si ingresaron un enlace de iTunes / Apple Music (ej. i=12345678 o /id12345678)
+  // Si pegan un enlace de Apple Music / iTunes, extraemos el ID numérico (ej. /id12345678 o i=12345678)
   if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
-    const matchId = query.match(/i=(\d+)/) || query.match(/\/id(\d+)/);
+    let matchId = query.match(/\/id(\d+)/) || query.match(/i=(\d+)/);
+    
+    // Si el link trae el ID al final o en formato web estándar
+    if (!matchId) {
+      const segments = query.split('/');
+      const lastSeg = segments[segments.length - 1];
+      const cleanSeg = lastSeg.replace('id', '').split('?')[0];
+      if (/^\d+$/.test(cleanSeg)) {
+        matchId = [null, cleanSeg];
+      }
+    }
+
     if (matchId && matchId[1]) {
       requestUrl = `https://itunes.apple.com/lookup?id=${matchId[1]}&callback=handleITunesResponse`;
     } else {
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace.</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:#ff4757;">No se pudo extraer el ID del enlace. Prueba buscando por nombre.</p>';
       return;
     }
   } else {
@@ -116,7 +127,7 @@ function handleITunesResponse(data) {
   const resultsDiv = document.getElementById('itunesResults');
   resultsDiv.innerHTML = '';
   if (!data.results || data.results.length === 0) {
-    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados.</p>';
+    resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--text-sub);">Sin resultados. Intenta escribir el nombre exacto.</p>';
     return;
   }
 
