@@ -1,5 +1,5 @@
 let songs = JSON.parse(localStorage.getItem('wadespotistats_songs')) || [];
-let currentView = 'grid';
+let currentView = 'playlist';
 let activeChart = null;
 
 // Inicializar historial de streams asegurando consistencia
@@ -25,54 +25,62 @@ function extractSpotifyTrackId(url) {
   return match ? match[1] : null;
 }
 
-// CONSULTA DE REPRODUCCIONES CON RESPALDO DE INCREMENTO DINÁMICO
+// CONSULTA DIRECTA DE REPRODUCCIONES DESDE MYSTREAMCOUNT
 async function fetchRealStreamsForSong(song) {
   try {
     const trackId = extractSpotifyTrackId(song.link);
-    let fetchedStreams = null;
+    if (!trackId) return; // Si no hay link o ID válido, omite
 
-    if (trackId) {
-      // Intentar consultar el embed público de Spotify
-      try {
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent('https://open.spotify.com/embed/track/' + trackId)}`);
-        if (response.ok) {
-          const data = await response.json();
-          if (data && data.contents) {
-            const matchStreams = data.contents.match(/"playcount":(\d+)/) || data.contents.match(/listeners":(\d+)/);
-            if (matchStreams && matchStreams[1]) {
-              fetchedStreams = Number(matchStreams[1]);
+    // Usamos un proxy web seguro para consultar directamente la página de MyStreamCount de esa pista
+    const targetUrl = `https://www.mystreamcount.com/track/${trackId}`;
+    const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
+
+    const response = await fetch(proxyUrl);
+    if (response.ok) {
+      const data = await response.json();
+      if (data && data.contents) {
+        // Buscamos patrones numéricos en el HTML que correspondan al contador de streams mostrado en MyStreamCount
+        // Generalmente vienen en formato con comas o dentro de etiquetas de texto del bloque total streams
+        const htmlContent = data.contents;
+        
+        // Expresión regular para buscar cifras grandes con comas (ej. 28,174,215) cerca de los contadores
+        // O buscamos números estructurados en el texto fuente de la página
+        let extractedStreams = null;
+
+        // Intentar buscar coincidencias directas de texto numérico con comas de 7 u 8 dígitos típicos de streams
+        const matches = htmlContent.match(/>([0-9]{1,3}(?:,[0-9]{3}){2,3})</g);
+        if (matches && matches.length > 0) {
+          // Tomar el número con comas y limpiarlo para convertirlo en entero
+          for (let m of matches) {
+            const cleanNum = m.replace(/>|</g, '').replace(/,/g, '');
+            const numVal = parseInt(cleanNum, 10);
+            // Validar que sea un número de streams realista (ej. mayor a 10,000)
+            if (numVal > 10000) {
+              extractedStreams = numVal;
+              break;
             }
           }
         }
-      } catch (e) {
-        console.warn('Aviso de red en proxy secundario');
+
+        // Si se encontró el número exacto en MyStreamCount
+        if (extractedStreams && extractedStreams > 0) {
+          song.streams = extractedStreams;
+          
+          const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          const lastEntry = song.history[song.history.length - 1];
+
+          if (lastEntry && lastEntry.time === nowString) {
+            lastEntry.streams = extractedStreams;
+          } else {
+            song.history.push({ time: nowString, streams: extractedStreams });
+            if (song.history.length > 12) song.history.shift();
+          }
+          console.log(`✅ Streams reales sincronizados desde MyStreamCount para "${song.title}":`, extractedStreams);
+        }
       }
-    }
-
-    // Si la API externa no devolvió un número directo (por restricciones de Spotify), 
-    // aplicamos un incremento real basado en la popularidad para que veas la renderización y la gráfica activa.
-    if (!fetchedStreams || fetchedStreams <= 0) {
-      const current = parseInt(song.streams) || 0;
-      // Incremento realista por sincronización manual (ej. entre 1,200 y 4,500 streams nuevos)
-      const randomIncrement = Math.floor(Math.random() * 3300) + 1200;
-      fetchedStreams = current + randomIncrement;
-    }
-
-    if (fetchedStreams > 0) {
-      song.streams = fetchedStreams;
-      const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      const lastEntry = song.history[song.history.length - 1];
-
-      if (lastEntry && lastEntry.time === nowString) {
-        lastEntry.streams = fetchedStreams;
-      } else {
-        song.history.push({ time: nowString, streams: fetchedStreams });
-        if (song.history.length > 12) song.history.shift();
-      }
-      console.log(`✅ Streams renderizados para "${song.title}":`, fetchedStreams);
     }
   } catch (error) {
-    console.error('❌ Error al sincronizar:', song.title, error);
+    console.warn(`⚠️ No se pudo conectar con MyStreamCount para "${song.title}". Se mantiene tu valor actual.`, error);
   }
 }
 
@@ -89,7 +97,7 @@ async function manualSyncAllSongs() {
   renderSongs();
 
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
-  alert('¡Sincronización completada! Los números y las gráficas se han actualizado.');
+  alert('¡Sincronización finalizada consultando MyStreamCount!');
 }
 
 // SINCRONIZACIÓN AUTOMÁTICA HORARIA
@@ -144,6 +152,7 @@ function setView(view) {
   if(view === 'grid') document.getElementById('btnGrid').classList.add('active');
   if(view === 'horizontal') document.getElementById('btnHorizontal').classList.add('active');
   if(view === 'list') document.getElementById('btnList').classList.add('active');
+  if(view === 'playlist') document.getElementById('btnPlaylist').classList.add('active');
   renderSongs();
 }
 
@@ -198,7 +207,7 @@ async function openDetailModal(id) {
   document.getElementById('detailCover').src = song.cover || 'https://via.placeholder.com/300/181822/ffffff?text=Portada';
   document.getElementById('detailSongTitle').innerText = song.title;
   document.getElementById('detailSongArtist').innerText = `${song.artist} • ${song.album || 'Álbum'} (${song.type})`;
-  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams totales`;
+  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams reales`;
   document.getElementById('detailSpotifyLink').href = (song.link && song.link !== '#') ? song.link : 'https://open.spotify.com';
 
   document.getElementById('detailModalOverlay').style.display = 'flex';
@@ -216,7 +225,7 @@ async function openDetailModal(id) {
     data: {
       labels: labels,
       datasets: [{
-        label: 'Streams',
+        label: 'Streams Reales',
         data: dataPoints,
         borderColor: '#00a8ff',
         backgroundColor: 'rgba(0, 168, 255, 0.15)',
@@ -300,7 +309,7 @@ function handleITunesResponse(data) {
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (No olvides pegar tu enlace de Spotify)</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos aplicados! (Recuerda poner tu enlace de Spotify)</p>';
     };
     resultsDiv.appendChild(el);
   });
@@ -473,6 +482,27 @@ function renderSongs() {
         <div class="h-actions">
           <button class="action-btn edit-btn" data-id="${s.id}"><i class="fa-solid fa-pen"></i></button>
           <button class="action-btn delete-btn" data-id="${s.id}"><i class="fa-solid fa-trash"></i></button>
+        </div>
+      </div>
+    `).join('');
+  } else if (currentView === 'playlist') {
+    container.className = 'playlist-view';
+    container.innerHTML = list.map((s, i) => `
+      <div class="playlist-row">
+        <div class="playlist-index">${i + 1}</div>
+        <img class="playlist-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver menú y gráfica de evolución" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
+        <div class="playlist-info">
+          <div class="playlist-song-title"><a href="${s.link}" target="_blank">${s.title}</a></div>
+          <div class="playlist-song-artist">${s.artist}</div>
+        </div>
+        <div class="playlist-album">${s.album || 'Álbum'}</div>
+        <div class="playlist-streams-box">
+          <span class="streams-text">${formatNumber(s.streams)}</span>
+          <span style="font-size:0.68rem; color:var(--text-sub);">${s.type}</span>
+        </div>
+        <div class="playlist-actions">
+          <button class="action-btn edit-btn" data-id="${s.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
+          <button class="action-btn delete-btn" data-id="${s.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
         </div>
       </div>
     `).join('');
