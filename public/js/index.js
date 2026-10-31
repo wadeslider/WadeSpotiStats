@@ -1,15 +1,14 @@
 let songs = JSON.parse(localStorage.getItem('wadespotistats_songs')) || [];
-let currentView = 'playlist'; // Vista inicial por defecto para evitar fallos de renderizado
 let activeChart = null;
+let currentContextMenuSongId = null;
 
-// SEGUNDA BASE DE DATOS (HISTORIAL DESLIZANTE DE MÁXIMO 5 HORAS)
+// HISTORIAL DESLIZANTE DE MÁXIMO 5 HORAS
 function initSongHistory(song) {
   if (!song.history || !Array.isArray(song.history) || song.history.length === 0) {
     const baseStreams = parseInt(song.streams) || 0;
     const nowString = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     song.history = [{ time: nowString, streams: baseStreams }];
   } else {
-    // Asegurar que nunca exceda de 5 registros (borrando los más antiguos automáticamente)
     while (song.history.length > 5) {
       song.history.shift();
     }
@@ -30,11 +29,13 @@ function extractSpotifyTrackId(url) {
   return match ? match[1] : null;
 }
 
-// CONSULTA DIRECTA DE REPRODUCCIONES DESDE MYSTREAMCOUNT
+// CONSULTA DE REPRODUCCIONES DESDE MYSTREAMCOUNT CON DETECCIÓN DE ERRORES
 async function fetchRealStreamsForSong(song) {
   try {
     const trackId = extractSpotifyTrackId(song.link);
-    if (!trackId) return;
+    if (!trackId) {
+      return { success: false, reason: 'Enlace de Spotify inválido o sin ID' };
+    }
 
     const targetUrl = `https://www.mystreamcount.com/track/${trackId}`;
     const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(targetUrl)}`;
@@ -67,35 +68,45 @@ async function fetchRealStreamsForSong(song) {
           if (lastEntry && lastEntry.time === nowString) {
             lastEntry.streams = extractedStreams;
           } else {
-            // Agregar nuevo registro de hora
             song.history.push({ time: nowString, streams: extractedStreams });
-            // REGLA DE 5 HORAS: Si supera 5 registros, se borra el primero (el más viejo)
             if (song.history.length > 5) {
               song.history.shift();
             }
           }
+          return { success: true };
         }
       }
     }
+    return { success: false, reason: 'No se pudo conectar o extraer de MyStreamCount' };
   } catch (error) {
-    console.warn(`⚠️ No se pudo conectar con MyStreamCount para "${song.title}". Se mantiene tu valor actual.`, error);
+    return { success: false, reason: 'Error de red' };
   }
 }
 
-// SINCRONIZACIÓN MANUAL (CONECTADA AL BOTÓN)
+// SINCRONIZACIÓN MANUAL CON REPORTE DE ERRORES
 async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
 
+  let failedSongs = [];
+
   for (let song of songs) {
-    await fetchRealStreamsForSong(song);
+    const result = await fetchRealStreamsForSong(song);
+    if (!result.success) {
+      failedSongs.push(`• ${song.title} (${song.artist})`);
+    }
   }
 
   saveToStorage();
   renderSongs();
 
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
-  alert('¡Sincronización finalizada con MyStreamCount!');
+
+  if (failedSongs.length > 0) {
+    alert(`Sincronización finalizada.\n\n⚠️ Las siguientes canciones requieren atención porque su enlace de Spotify tiene errores o no se pudo actualizar:\n\n${failedSongs.join('\n')}`);
+  } else {
+    alert('¡Sincronización completada con éxito para todas las canciones!');
+  }
 }
 
 // SINCRONIZACIÓN AUTOMÁTICA HORARIA
@@ -144,16 +155,6 @@ function updateStats() {
   }
 }
 
-function setView(view) {
-  currentView = view;
-  document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-  if(view === 'grid') document.getElementById('btnGrid').classList.add('active');
-  if(view === 'horizontal') document.getElementById('btnHorizontal').classList.add('active');
-  if(view === 'list') document.getElementById('btnList').classList.add('active');
-  if(view === 'playlist') document.getElementById('btnPlaylist').classList.add('active');
-  renderSongs();
-}
-
 function openModal(id = null) {
   const modal = document.getElementById('modalOverlay');
   const form = document.getElementById('songForm');
@@ -193,6 +194,34 @@ function openModal(id = null) {
 function closeModal() {
   document.getElementById('modalOverlay').style.display = 'none';
 }
+
+// GESTIÓN DEL MENÚ CONTEXTUAL (TRES PUNTOS Y LONG PRESS)
+function openContextMenu(id, event) {
+  if (event) event.stopPropagation();
+  currentContextMenuSongId = id;
+  const song = songs.find(s => Number(s.id) === Number(id));
+  if (song) {
+    document.getElementById('contextMenuTitle').innerText = song.title;
+  }
+  document.getElementById('contextMenuOverlay').style.display = 'flex';
+}
+
+function closeContextMenu() {
+  document.getElementById('contextMenuOverlay').style.display = 'none';
+  currentContextMenuSongId = null;
+}
+
+document.getElementById('ctxEditBtn').onclick = () => {
+  const id = currentContextMenuSongId;
+  closeContextMenu();
+  if (id) openModal(id);
+};
+
+document.getElementById('ctxDeleteBtn').onclick = () => {
+  const id = currentContextMenuSongId;
+  closeContextMenu();
+  if (id) deleteSong(id);
+};
 
 async function openDetailModal(id) {
   const song = songs.find(s => Number(s.id) === Number(id));
@@ -442,122 +471,54 @@ function renderSongs() {
     return;
   }
 
-  if (currentView === 'grid') {
-    container.className = 'grid-view';
-    container.innerHTML = list.map(s => `
-      <div class="song-card">
-        <div class="card-actions">
-          <button class="action-btn edit-btn" data-id="${s.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-          <button class="action-btn delete-btn" data-id="${s.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-        </div>
-        <div class="img-container img-detail-trigger" data-id="${s.id}" title="Ver menú y gráfica de evolución">
-          <img src="${s.cover}" alt="${s.title}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-        </div>
-        <div class="card-title"><a href="${s.link}" target="_blank">${s.title}</a></div>
-        <div class="card-artist">${s.artist}</div>
-        <div class="card-meta-small">${s.date ? '📅 ' + formatDate(s.date) : ''}</div>
-        <div class="card-info">
-          <span>${s.type}</span>
-          <span class="streams-text">${formatNumber(s.streams)}</span>
-        </div>
+  // RENDERIZADO EXCLUSIVO VISTA PLAYLIST CON TRES PUNTOS Y LONG PRESS
+  container.className = 'playlist-view';
+  container.innerHTML = list.map((s, i) => `
+    <div class="playlist-row" data-id="${s.id}">
+      <div class="playlist-index">${i + 1}</div>
+      <img class="playlist-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver gráfica de evolución" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
+      <div class="playlist-info img-detail-trigger" data-id="${s.id}">
+        <div class="playlist-song-title"><a href="${s.link}" target="_blank" onclick="event.stopPropagation()">${s.title}</a></div>
+        <div class="playlist-song-artist">${s.artist} • ${s.album || 'Álbum'}</div>
       </div>
-    `).join('');
-  } else if (currentView === 'horizontal') {
-    container.className = 'horizontal-view';
-    container.innerHTML = list.map(s => `
-      <div class="h-card">
-        <div class="img-container img-detail-trigger" data-id="${s.id}" title="Ver menú y gráfica de evolución">
-          <img src="${s.cover}" alt="${s.title}" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-        </div>
-        <div class="h-details">
-          <div class="h-title"><a href="${s.link}" target="_blank">${s.title}</a></div>
-          <div class="h-artist">${s.artist}</div>
-          <div class="h-meta">${s.album} • ${s.type} ${s.date ? '• ' + formatDate(s.date) : ''}</div>
-        </div>
-        <div style="text-align:right;">
-          <div class="streams-text">${formatNumber(s.streams)}</div>
-        </div>
-        <div class="h-actions">
-          <button class="action-btn edit-btn" data-id="${s.id}"><i class="fa-solid fa-pen"></i></button>
-          <button class="action-btn delete-btn" data-id="${s.id}"><i class="fa-solid fa-trash"></i></button>
-        </div>
+      <div class="playlist-streams-box img-detail-trigger" data-id="${s.id}">
+        <span class="streams-text">${formatNumber(s.streams)}</span>
       </div>
-    `).join('');
-  } else if (currentView === 'playlist') {
-    container.className = 'playlist-view';
-    container.innerHTML = list.map((s, i) => `
-      <div class="playlist-row">
-        <div class="playlist-index">${i + 1}</div>
-        <img class="playlist-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver menú y gráfica de evolución" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-        <div class="playlist-info">
-          <div class="playlist-song-title"><a href="${s.link}" target="_blank">${s.title}</a></div>
-          <div class="playlist-song-artist">${s.artist}</div>
-        </div>
-        <div class="playlist-album">${s.album || 'Álbum'}</div>
-        <div class="playlist-streams-box">
-          <span class="streams-text">${formatNumber(s.streams)}</span>
-          <span style="font-size:0.68rem; color:var(--text-sub);">${s.type}</span>
-        </div>
-        <div class="playlist-actions">
-          <button class="action-btn edit-btn" data-id="${s.id}" title="Editar"><i class="fa-solid fa-pen"></i></button>
-          <button class="action-btn delete-btn" data-id="${s.id}" title="Eliminar"><i class="fa-solid fa-trash"></i></button>
-        </div>
-      </div>
-    `).join('');
-  } else {
-    container.className = '';
-    container.innerHTML = `
-      <div class="table-wrapper">
-        <table class="list-view-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Título / Artista</th>
-              <th>Álbum</th>
-              <th>Lanzamiento</th>
-              <th>Reproducciones exactas</th>
-              <th>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${list.map((s, i) => `
-              <tr>
-                <td style="color:var(--text-sub); width: 25px;">${i + 1}</td>
-                <td>
-                  <div class="table-song-cell">
-                    <img class="table-thumb img-detail-trigger" data-id="${s.id}" src="${s.cover}" title="Ver menú y gráfica de evolución" onerror="this.src='https://via.placeholder.com/300/181822/ffffff?text=Portada'">
-                    <div>
-                      <div style="font-weight:bold;"><a href="${s.link}" target="_blank" style="color:white; text-decoration:none;">${s.title}</a></div>
-                      <div style="color:var(--text-sub); font-size:0.75rem;">${s.artist}</div>
-                    </div>
-                  </div>
-                </td>
-                <td style="color:var(--text-sub);">${s.album}</td>
-                <td style="color:var(--text-sub); font-size:0.8rem;">${formatDate(s.date) || '-'}</td>
-                <td><span class="streams-text">${formatNumber(s.streams)}</span></td>
-                <td>
-                  <button class="action-btn edit-btn" data-id="${s.id}"><i class="fa-solid fa-pen"></i></button>
-                  <button class="action-btn delete-btn" data-id="${s.id}"><i class="fa-solid fa-trash"></i></button>
-                </td>
-              </tr>
-            `).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
+      <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
+    </div>
+  `).join('');
 
-  document.querySelectorAll('.edit-btn').forEach(btn => {
-    btn.onclick = () => openModal(btn.getAttribute('data-id'));
-  });
-  document.querySelectorAll('.delete-btn').forEach(btn => {
-    btn.onclick = () => deleteSong(btn.getAttribute('data-id'));
-  });
+  // Eventos de clic en portada/datos para abrir gráfica
   document.querySelectorAll('.img-detail-trigger').forEach(el => {
     el.onclick = () => openDetailModal(el.getAttribute('data-id'));
   });
+
+  // Evento Long Press (Mantener presionado en celulares y PC) para abrir el menú contextual
+  document.querySelectorAll('.playlist-row').forEach(row => {
+    const id = row.getAttribute('data-id');
+    let pressTimer = null;
+
+    const startPress = (e) => {
+      // Si hacen clic en el enlace o en el botón de opciones, ignorar long press
+      if (e.target.tagName === 'A' || e.target.closest('.options-btn')) return;
+      pressTimer = setTimeout(() => {
+        openContextMenu(id);
+      }, 600); // 600 milisegundos de presión
+    };
+
+    const cancelPress = () => {
+      if (pressTimer) clearTimeout(pressTimer);
+    };
+
+    row.onmousedown = startPress;
+    row.onmouseup = cancelPress;
+    row.onmouseleave = cancelPress;
+
+    row.ontouchstart = startPress;
+    row.ontouchend = cancelPress;
+    row.ontouchmove = cancelPress;
+  });
 }
 
-// Renderizado inmediato al cargar la página
 updateStats();
 renderSongs();
