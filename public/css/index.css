@@ -74,7 +74,7 @@ select {
 
 .container { padding: 0 20px; }
 
-/* VISTAS */
+/* VISTAS GRID Y HORIZONTAL */
 .grid-view { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .song-card {
   background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px;
@@ -106,23 +106,42 @@ select {
 .h-meta { font-size: 0.72rem; color: var(--text-sub); margin-top: 2px; }
 .h-actions { display: flex; gap: 4px; }
 
-/* VISTA PLAYLIST SPOTIFY */
+/* CORRECCIÓN ESTRICTA VISTA PLAYLIST SPOTIFY */
 .playlist-view { display: flex; flex-direction: column; gap: 8px; }
 .playlist-row {
   background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 6px;
   padding: 8px 14px; display: flex; align-items: center; gap: 14px; transition: background 0.2s;
 }
 .playlist-row:hover { background: var(--card-hover); border-color: #383848; }
-.playlist-index { font-size: 0.85rem; color: var(--text-sub); width: 20px; text-align: center; font-weight: 500; }
-.playlist-thumb { width: 44px; height: 44px; border-radius: 4px; object-fit: cover; cursor: pointer; flex-shrink: 0; }
+.playlist-index { font-size: 0.85rem; color: var(--text-sub); width: 20px; text-align: center; font-weight: 500; flex-shrink: 0; }
+
+/* TAMAÑO FIJO CONTROLADO PARA LAS PORTADAS DE LA PLAYLIST */
+.playlist-thumb {
+  width: 48px !important;
+  height: 48px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+  max-width: 48px !important;
+  max-height: 48px !important;
+  border-radius: 4px;
+  object-fit: cover;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: block;
+}
+
 .playlist-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .playlist-song-title { font-size: 0.9rem; font-weight: bold; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .playlist-song-title a { color: white; text-decoration: none; }
 .playlist-song-title a:hover { text-decoration: underline; }
 .playlist-song-artist { font-size: 0.78rem; color: var(--text-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.playlist-album { font-size: 0.8rem; color: var(--text-sub); width: 220px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.playlist-streams-box { text-align: right; min-width: 110px; display: flex; flex-direction: column; align-items: flex-end; }
-.playlist-actions { display: flex; gap: 4px; margin-left: 10px; }
+.playlist-album { font-size: 0.8rem; color: var(--text-sub); width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+@media (max-width: 600px) {
+  .playlist-album { display: none; }
+}
+
+.playlist-streams-box { text-align: right; min-width: 100px; display: flex; flex-direction: column; align-items: flex-end; flex-shrink: 0; }
+.playlist-actions { display: flex; gap: 4px; margin-left: 6px; flex-shrink: 0; }
 
 .table-wrapper { overflow-x: auto; }
 .list-view-table { width: 100%; border-collapse: collapse; min-width: 500px; }
