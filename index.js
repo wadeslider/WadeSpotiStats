@@ -93,17 +93,20 @@ function searchITunes() {
 
   let requestUrl = '';
 
-  // Si pegan un enlace de Apple Music / iTunes, extraemos el ID numérico (ej. /id12345678 o i=12345678)
+  // Si pegan un enlace de Apple Music / iTunes
   if (query.includes('apple.com') || query.includes('itunes.apple.com')) {
+    // Busca patrones tipo /id12345, i=12345, o números largos al final de la URL
     let matchId = query.match(/\/id(\d+)/) || query.match(/i=(\d+)/);
     
-    // Si el link trae el ID al final o en formato web estándar
     if (!matchId) {
-      const segments = query.split('/');
-      const lastSeg = segments[segments.length - 1];
-      const cleanSeg = lastSeg.replace('id', '').split('?')[0];
-      if (/^\d+$/.test(cleanSeg)) {
-        matchId = [null, cleanSeg];
+      const cleanPath = query.split('?')[0];
+      const segments = cleanPath.split('/').filter(Boolean);
+      // Revisa los segmentos desde el final buscando una secuencia de puros números
+      for (let i = segments.length - 1; i >= 0; i--) {
+        if (/^\d{5,}$/.test(segments[i])) {
+          matchId = [null, segments[i]];
+          break;
+        }
       }
     }
 
