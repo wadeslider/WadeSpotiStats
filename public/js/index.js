@@ -58,6 +58,23 @@ async function fetchRealStreamsForSong(song) {
   }
 }
 
+// FUNCIÓN DE SINCRONIZACIÓN MANUAL (CONECTADA AL NUEVO BOTÓN)
+async function manualSyncAllSongs() {
+  const btn = document.getElementById('syncBtn');
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+
+  for (let song of songs) {
+    await fetchRealStreamsForSong(song);
+  }
+
+  saveToStorage();
+  renderSongs();
+
+  if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
+  alert('¡Sincronización completada con éxito!');
+}
+
+// SINCRONIZACIÓN AUTOMÁTICA CADA HORA
 async function updateRealStreamsAutomatically() {
   const lastUpdate = localStorage.getItem('wadespotistats_last_real_update');
   const now = Date.now();
@@ -273,8 +290,6 @@ function handleITunesResponse(data) {
   data.results.forEach(item => {
     const coverHd = item.artworkUrl100 ? item.artworkUrl100.replace('100x100bb', '1000x1000bb') : '';
     const releaseDate = item.releaseDate ? item.releaseDate.split('T')[0] : '';
-    
-    // Generar automáticamente un enlace de búsqueda directa en Spotify usando el artista y el nombre de la canción
     const spotifyAutoLink = `https://open.spotify.com/search/${encodeURIComponent(item.artistName + ' ' + item.trackName)}`;
 
     const el = document.createElement('div');
@@ -291,9 +306,9 @@ function handleITunesResponse(data) {
       document.getElementById('artistInput').value = item.artistName;
       document.getElementById('albumInput').value = item.collectionName || '';
       document.getElementById('coverInput').value = coverHd;
-      document.getElementById('linkInput').value = spotifyAutoLink; // <--- ¡Enlace automático generado!
+      document.getElementById('linkInput').value = spotifyAutoLink;
       if (releaseDate) document.getElementById('dateInput').value = releaseDate;
-      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos y enlace de Spotify aplicados automáticamente!</p>';
+      resultsDiv.innerHTML = '<p style="font-size:0.75rem; color:var(--green-spotify);">¡Datos y enlace aplicados!</p>';
     };
     resultsDiv.appendChild(el);
   });
