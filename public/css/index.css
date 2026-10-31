@@ -43,9 +43,12 @@ h1 i { color: var(--accent); }
 }
 .btn-secondary-btn:hover { color: white; border-color: #444; }
 
-/* ESTADÍSTICAS */
+/* ESTADÍSTICAS (4 TARJETAS) */
 .stats-bar {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; padding: 0 20px 15px;
+  display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding: 0 20px 15px;
+}
+@media (min-width: 600px) {
+  .stats-bar { grid-template-columns: repeat(4, 1fr); }
 }
 .stat-card {
   background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px;
@@ -81,7 +84,7 @@ select {
 }
 .playlist-row:hover { background: var(--card-hover); border-color: #383848; }
 
-/* COLUMNA DE RANKING Y FLECHAS DE CAMBIO DE POSICIÓN */
+/* COLUMNA DE RANKING Y TENDENCIAS */
 .playlist-rank-col {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   width: 30px; flex-shrink: 0;
@@ -90,6 +93,7 @@ select {
 .trend-indicator { font-size: 0.7rem; margin-top: 2px; display: flex; align-items: center; justify-content: center; }
 .trend-up { color: var(--green-up); }
 .trend-down { color: var(--red-down); }
+.trend-equal { color: var(--accent); font-size: 0.5rem; }
 
 .playlist-thumb {
   width: 52px !important; height: 52px !important;
@@ -97,7 +101,7 @@ select {
   border-radius: 6px; object-fit: cover; flex-shrink: 0; display: block;
 }
 
-/* BLOQUE DE LOS 3 DATOS EXACTOS EN ORDEN VERTICAL */
+/* 3 DATOS EXACTOS EN ORDEN VERTICAL */
 .playlist-info {
   flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: 3px;
 }
