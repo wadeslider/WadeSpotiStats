@@ -146,36 +146,44 @@
     </div>
   </div>
 
-  <!-- MODAL INTERACTIVO DE DETALLES Y GRÁFICA (MÁXIMO 5 HORAS) -->
+  <!-- MODAL INTERACTIVO DE DETALLES Y DATOS EXPLÍCITOS -->
   <div class="modal-overlay" id="detailModalOverlay">
     <div class="modal" style="max-width: 600px;">
       <div class="modal-header">
-        <h3 id="detailModalTitle"><i class="fa-solid fa-chart-line" style="color:var(--accent);"></i> Evolución de Streams (Últimas 5 horas)</h3>
+        <h3 id="detailModalTitle"><i class="fa-solid fa-circle-info" style="color:var(--accent);"></i> Detalles y Evolución</h3>
         <button class="close-modal" onclick="closeDetailModal()"><i class="fa-solid fa-xmark"></i></button>
       </div>
       
       <div id="songDetailContent" style="display: flex; flex-direction: column; gap: 15px;">
-        <div style="display: flex; gap: 12px; align-items: center;">
-          <img id="detailCover" src="" alt="" style="width: 70px; height: 70px; border-radius: 8px; object-fit: cover;">
-          <div>
-            <div id="detailSongTitle" style="font-weight: bold; font-size: 1.1rem; color: white;"></div>
-            <div id="detailSongArtist" style="font-size: 0.85rem; color: var(--text-sub);"></div>
-            <div id="detailSongStreams" class="streams-text" style="margin-top: 4px; font-size: 1rem;"></div>
+        <div style="display: flex; gap: 14px; align-items: center;">
+          <img id="detailCover" src="" alt="" style="width: 80px; height: 80px; border-radius: 8px; object-fit: cover; flex-shrink:0;">
+          <div style="display: flex; flex-direction: column; gap: 4px; min-width:0;">
+            <div id="detailSongTitle" style="font-weight: bold; font-size: 1.15rem; color: white;"></div>
+            <div id="detailSongArtist" style="font-size: 0.88rem; color: var(--text-sub);"></div>
+            <div id="detailSongStreams" class="streams-text" style="font-size: 1.05rem;"></div>
           </div>
+        </div>
+
+        <!-- DATOS EXPLÍCITOS DE LA CANCIÓN -->
+        <div style="background: #14141c; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 0.82rem;">
+          <div><span style="color:var(--text-sub);">Álbum:</span> <strong id="detailAlbum" style="color:white;">-</strong></div>
+          <div><span style="color:var(--text-sub);">Tipo:</span> <strong id="detailType" style="color:white;">-</strong></div>
+          <div><span style="color:var(--text-sub);">Lanzamiento:</span> <strong id="detailDate" style="color:white;">-</strong></div>
+          <div><span style="color:var(--text-sub);">Historial registros:</span> <strong id="detailHistoryCount" style="color:var(--accent);">5 / 5 max</strong></div>
         </div>
 
         <div style="background: #0e0e14; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color);">
           <div style="font-size: 0.8rem; color: var(--text-sub); margin-bottom: 8px; display: flex; justify-content: space-between;">
-            <span>📈 Historial deslizante (Máximo 5 registros)</span>
+            <span>📈 Gráfica de evolución (Últimas 5 horas)</span>
             <span style="font-size: 0.75rem; color: var(--accent);">Optimizado</span>
           </div>
-          <div style="position: relative; height: 220px; width: 100%;">
+          <div style="position: relative; height: 200px; width: 100%;">
             <canvas id="streamsChart"></canvas>
           </div>
         </div>
 
         <div style="display: flex; justify-content: space-between; align-items: center;">
-          <a id="detailSpotifyLink" href="#" target="_blank" class="btn-main" style="text-decoration: none; font-size: 0.8rem; background-color: var(--green-spotify);">
+          <a id="detailSpotifyLink" href="#" target="_blank" class="btn-main" style="text-decoration: none; font-size: 0.82rem; background-color: var(--green-spotify);">
             <i class="fa-brands fa-spotify"></i> Escuchar en Spotify
           </a>
           <button type="button" class="btn-secondary" onclick="closeDetailModal()">Cerrar</button>
