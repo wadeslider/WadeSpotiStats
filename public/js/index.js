@@ -81,10 +81,13 @@ async function fetchRealStreamsForSong(song) {
   }
 }
 
-// SINCRONIZACIÓN MANUAL GUARDANDO POSICIONES PREVIAS PARA TENDENCIAS
+// SINCRONIZACIÓN MANUAL CON ANIMACIÓN DE NÚMEROS "VOLVIÉNDOSE LOCOS"
 async function manualSyncAllSongs() {
   const btn = document.getElementById('syncBtn');
   if (btn) btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Sincronizando...';
+
+  // Activar efecto de números locos en pantalla mientras se procesa
+  triggerCrazyNumbersEffect();
 
   const previousOrder = getFilteredAndSortedSongs();
   previousOrder.forEach((s, idx) => {
@@ -104,7 +107,7 @@ async function manualSyncAllSongs() {
   }
 
   saveToStorage();
-  renderSongs();
+  renderSongs(true); // Renderiza aplicando la animación final de conteo y resplandor
 
   if (btn) btn.innerHTML = '<i class="fa-solid fa-rotate"></i> Sincronizar';
 
@@ -132,7 +135,7 @@ async function updateRealStreamsAutomatically() {
     }
     localStorage.setItem('wadespotistats_last_real_update', now.toString());
     saveToStorage();
-    renderSongs();
+    renderSongs(true);
   }
 }
 
@@ -153,15 +156,60 @@ function formatDate(dateStr) {
   return cleanDate;
 }
 
+// EFECTO VISUAL DONDE LOS NÚMEROS SE "VIENEN LOCOS"
+function triggerCrazyNumbersEffect() {
+  const streamElements = document.querySelectorAll('.playlist-song-streams');
+  const totalEl = document.getElementById('statTotalStreams');
+  const avgEl = document.getElementById('statAverageStreams');
+
+  const interval = setInterval(() => {
+    streamElements.forEach(el => {
+      const randomVal = Math.floor(Math.random() * 500000000) + 10000000;
+      el.innerText = formatNumber(randomVal);
+    });
+    if (totalEl) totalEl.innerText = formatNumber(Math.floor(Math.random() * 9000000000) + 50000000);
+    if (avgEl) avgEl.innerText = formatNumber(Math.floor(Math.random() * 50000000) + 1000000);
+  }, 70);
+
+  // Guardar referencia para detenerlo al terminar la sincronización
+  window.crazyInterval = interval;
+}
+
+// ANIMACIÓN PROGRESIVA TIPO "COUNT UP" PARA EL CIERRE DE LOS NÚMEROS
+function animateCountUp(element, targetValue, duration = 1000) {
+  if (!element) return;
+  const startValue = Math.floor(targetValue * 0.7); // Empieza desde un valor cercano
+  const startTime = performance.now();
+
+  function updateCount(currentTime) {
+    const elapsedTime = currentTime - startTime;
+    const progress = Math.min(elapsedTime / duration, 1);
+    
+    const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+    const currentValue = Math.floor(startValue + (targetValue - startValue) * easeProgress);
+
+    element.innerText = formatNumber(currentValue);
+
+    if (progress < 1) {
+      requestAnimationFrame(updateCount);
+    } else {
+      element.innerText = formatNumber(targetValue);
+    }
+  }
+
+  requestAnimationFrame(updateCount);
+}
+
 function updateStats() {
   document.getElementById('statCount').innerText = songs.length;
   const totalStreams = songs.reduce((sum, s) => sum + (parseInt(s.streams) || 0), 0);
-  document.getElementById('statTotalStreams').innerText = formatNumber(totalStreams);
+  
+  const totalStreamsEl = document.getElementById('statTotalStreams');
+  animateCountUp(totalStreamsEl, totalStreams, 1200);
 
-  // Calcular promedio por canción
   const avgStreams = songs.length > 0 ? Math.round(totalStreams / songs.length) : 0;
   const avgEl = document.getElementById('statAverageStreams');
-  if (avgEl) avgEl.innerText = formatNumber(avgStreams);
+  if (avgEl) animateCountUp(avgEl, avgStreams, 1200);
 
   if(songs.length > 0) {
     const topSong = [...songs].sort((a,b) => b.streams - a.streams)[0];
@@ -252,8 +300,10 @@ async function openDetailModal(id) {
   document.getElementById('detailCover').src = song.cover || 'https://via.placeholder.com/300/181822/ffffff?text=Portada';
   document.getElementById('detailSongTitle').innerText = song.title;
   document.getElementById('detailSongArtist').innerText = song.artist;
-  document.getElementById('detailSongStreams').innerText = `${formatNumber(song.streams)} streams totales`;
   
+  const detailStreamsEl = document.getElementById('detailSongStreams');
+  animateCountUp(detailStreamsEl, song.streams, 800);
+
   document.getElementById('detailAlbum').innerText = song.album || 'Sin álbum';
   document.getElementById('detailType').innerText = song.type || 'Sencillo';
   document.getElementById('detailDate').innerText = formatDate(song.date);
@@ -430,11 +480,11 @@ async function saveSong(e) {
 
   saveToStorage();
   closeModal();
-  renderSongs();
+  renderSongs(true);
 
   await fetchRealStreamsForSong(songData);
   saveToStorage();
-  renderSongs();
+  renderSongs(true);
 }
 
 function deleteSong(id) {
@@ -451,7 +501,7 @@ function exportJSON() {
   downloadAnchor.setAttribute("href", dataStr);
   downloadAnchor.setAttribute("download", "WadeSpotiStats_Backup.json");
   document.body.appendChild(downloadAnchor);
-  downloadAnchor.click();
+    downloadAnchor.click();
   downloadAnchor.remove();
 }
 
@@ -481,7 +531,7 @@ function importJSON(event) {
           return mapped;
         });
         saveToStorage();
-        renderSongs();
+        renderSongs(true);
         alert('¡Datos y respaldo cargados con éxito!');
       } else {
         alert('El archivo JSON no tiene el formato correcto.');
@@ -513,7 +563,7 @@ function getFilteredAndSortedSongs() {
   });
 }
 
-function renderSongs() {
+function renderSongs(isUpdate = false) {
   const container = document.getElementById('songsContainer');
   const list = getFilteredAndSortedSongs();
 
@@ -522,7 +572,6 @@ function renderSongs() {
     return;
   }
 
-  // RENDERIZADO CON PUNTO AZUL (SI SE MANTIENE) O FLECHAS (SI SUBE/BAJA)
   container.className = 'playlist-view';
   container.innerHTML = list.map((s, i) => {
     const currentRank = i + 1;
@@ -538,6 +587,8 @@ function renderSongs() {
       }
     }
 
+    const updatedClass = isUpdate ? 'updated-glow' : '';
+
     return `
       <div class="playlist-row" data-id="${s.id}" onclick="openDetailModal('${s.id}')">
         <div class="playlist-rank-col">
@@ -548,12 +599,21 @@ function renderSongs() {
         <div class="playlist-info">
           <div class="playlist-song-title">${s.title}</div>
           <div class="playlist-song-artist">${s.artist}</div>
-          <div class="playlist-song-streams">${formatNumber(s.streams)}</div>
+          <div class="playlist-song-streams ${updatedClass}" id="stream-val-${s.id}">${formatNumber(s.streams)}</div>
         </div>
         <button class="options-btn" onclick="openContextMenu('${s.id}', event)" title="Opciones"><i class="fa-solid fa-ellipsis-vertical"></i></button>
       </div>
     `;
   }).join('');
+
+  // Detener el bucle de números locos y aplicar la animación final de conteo suave hacia el valor real
+  if (isUpdate) {
+    if (window.crazyInterval) clearInterval(window.crazyInterval);
+    list.forEach(s => {
+      const el = document.getElementById(`stream-val-${s.id}`);
+      if (el) animateCountUp(el, s.streams, 900);
+    });
+  }
 
   // Evento Long Press para el menú contextual
   document.querySelectorAll('.playlist-row').forEach(row => {
